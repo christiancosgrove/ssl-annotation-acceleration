@@ -30,6 +30,10 @@ def main():
 		else:
 			print(model.train_step(reader.minibatch_unlabeled(mb_size), lab[0], lab[1]))
 
+			if i % 100 == 0:
+				fakes = model.sample_fake()
+				plt.imshow(fakes[0])
+				plt.show()
 
 if __name__ == '__main__':
 	main()

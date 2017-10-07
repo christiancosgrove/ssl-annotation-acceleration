@@ -22,9 +22,10 @@ class SSLModel:
 
     def build(self):
         
+        self.X_fake = self.G(self.z)
         self.D_real, self.D_real_feat = self.D(self.X)
         self.D_real_lab, _ = self.D(self.X_lab, True)
-        self.D_fake, self.D_fake_feat = self.D(self.G(self.z), True)
+        self.D_fake, self.D_fake_feat = self.D(self.X_fake, True)
 
         l_enc = tf.reduce_logsumexp(self.D_real, axis=1)
         l_gen = tf.reduce_logsumexp(self.D_fake, axis=1)
@@ -81,7 +82,7 @@ class SSLModel:
             return h, h_X
 
     def train_step(self, X_mb, X_lab_mb, Y_mb):
-        z_mb = self.sample_z(self.mb_size, self.z_dim)
+        z_mb = self.sample_z()
 
         _, D_loss_curr = self.sess.run(
             [self.D_solver, self.D_loss], feed_dict={self.X: X_mb, self.z: z_mb, self.X_lab: X_lab_mb, self.Y: Y_mb, self.training_now:True}
@@ -93,12 +94,15 @@ class SSLModel:
 
         return (D_loss_curr, G_loss_curr)
 
-    def sample_z(self, m, n):
-        return np.random.uniform(-1., 1., size=[m, n])
+    def sample_z(self):
+        return np.random.uniform(-1., 1., size=[self.mb_size, self.z_dim])
 
     def predict(self, X): #get class probabilities for a minibatch of images
         #todo: write implementation
-        return np.random.uniform(0., 1., size=(X.shape[0], self.classes)) 
+        return np.random.uniform(0., 1., size=(X.shape[0], self.classes))
+
+    def sample_fake(self):
+        return self.sess.run(self.X_fake, feed_dict={self.z: self.sample_z(), self.training_now:False})
 
 def lrelu(x, leak=0.2, name="lrelu"):
      with tf.variable_scope(name):
