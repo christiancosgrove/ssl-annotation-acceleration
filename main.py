@@ -28,7 +28,7 @@ def main():
 		if lab is None:
 			time.sleep(1)
 		else:
-			print(model.train_step(reader.minibatch_unlabeled(mb_size)))
+			print(model.train_step(reader.minibatch_unlabeled(mb_size), lab[0], lab[1]))
 
 
 if __name__ == '__main__':

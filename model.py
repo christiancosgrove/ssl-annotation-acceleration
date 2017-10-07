@@ -45,12 +45,17 @@ class SSLModel:
             self.D_solver = (opt.minimize(self.D_loss, var_list=theta_D))
             self.G_solver = (opt.minimize(self.G_loss, var_list=theta_G))
 
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        self.sess = tf.Session(config=config)
+        self.sess.run(tf.global_variables_initializer())
+
 
     def G(self, z):
         with tf.variable_scope('G_'):
             h = z
             h = bn_dense(z, 4*4*512, self.training_now, bias=False, nonlinearity=tf.nn.relu)
-            h = tf.reshape(h, (self.mb_size, 512, 4, 4))
+            h = tf.reshape(h, (self.mb_size, 4, 4, 512))
             h = bn_convlayer_t(h, 5, 2, 256, self.training_now, bias=False, nonlinearity=tf.nn.relu)
             h = bn_convlayer_t(h, 5, 2, 128, self.training_now, bias=False, nonlinearity=tf.nn.relu)
             h = tf.layers.conv2d_transpose(inputs=h, filters=3, kernel_size=[5,5], padding='same', activation=tf.nn.tanh, strides=(2,2), use_bias=True)
@@ -76,13 +81,13 @@ class SSLModel:
             return h, h_X
 
     def train_step(self, X_mb, X_lab_mb, Y_mb):
-        z_mb = sample_z(self.mb_size, self.z_dim)
+        z_mb = self.sample_z(self.mb_size, self.z_dim)
 
-        _, D_loss_curr = sess.run(
+        _, D_loss_curr = self.sess.run(
             [self.D_solver, self.D_loss], feed_dict={self.X: X_mb, self.z: z_mb, self.X_lab: X_lab_mb, self.Y: Y_mb, self.training_now:True}
         )
 
-        _, G_loss_curr = sess.run(
+        _, G_loss_curr = self.sess.run(
             [self.G_solver, self.G_loss], feed_dict={self.X: X_mb, self.z: z_mb, self.X_lab: X_lab_mb, self.Y: Y_mb, self.training_now:True}
         )
 

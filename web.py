@@ -58,6 +58,7 @@ def submit():
 
     for i, r in enumerate(responses):
         if r == 1:
+            print('positive label {}'.format(imgs[i]))
             reader.label_image_positive(imgs[i], categories[i])
         elif r == -1:
             reader.label_image_negative(imgs[i], categories[i])
