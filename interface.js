@@ -32,9 +32,13 @@ function nextPage() {
         }
     }
     // if (aid != 'ASSIGNMENT_ID_NOT_AVAILABLE') {
-        $.ajax({type:'POST', url:'/submit', data: JSON.stringify(dat), contentType:'application/json'}).done(function() {
-            document.getElementById('form1').submit()
-        })
+        if (!submitted)
+        {
+            submitted = true
+            $.ajax({type:'POST', url:'/submit', data: JSON.stringify(dat), contentType:'application/json'}).done(function() {
+                document.getElementById('form1').submit()
+            })
+        }
     // }
 }
 
@@ -47,7 +51,7 @@ document.onkeypress = function(e) {
     }
 }
 
-
+submitted = false;
 currItemIndex = 0;
 function nextItem(checked) {
     

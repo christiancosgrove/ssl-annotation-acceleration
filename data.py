@@ -77,9 +77,9 @@ class DataReader:
 
         return self.images[indices], np.array(labels)
 
-    def label_image_positive(index, category):
+    def label_image_positive(self, index, category):
         self.image_list[index].labels[category] = 1
-    def label_image_negative(index, category):
+    def label_image_negative(self, index, category):
         self.image_list[index].labels[category] = -1
 
 
