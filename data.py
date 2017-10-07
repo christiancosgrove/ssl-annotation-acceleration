@@ -16,18 +16,18 @@ class ImageInfo:
         self.labels = np.array([0] * classes)
 
 class DataReader:
-    def __init__(self, directory, width, height, channels, classes, cache=True, load_filename=None):
+    def __init__(self, directory, width, height, channels, class_list, cache=True, load_filename=None):
         self.image_list = {}
         self.width = width
         self.height=height
         self.channels = channels
-        self.classes = classes
+        self.class_list = class_list
 
         if load_filename is not None:
             self.load_image_list(load_filename)
         else:
             for i, filename in enumerate(glob.glob('images/*')):
-                self.image_list[i] = ImageInfo(filename, classes)
+                self.image_list[i] = ImageInfo(filename, len(self.class_list))
         self.load('./cache',cache)
 
     def load(self, directory, cache=False): #loads images from directory; uses cache if available 

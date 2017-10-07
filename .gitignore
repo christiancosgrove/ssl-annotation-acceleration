@@ -1,3 +1,6 @@
+cache
+images
 *.jpg
+*.png
 *.npz
 __pycache__

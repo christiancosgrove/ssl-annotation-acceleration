@@ -7,20 +7,19 @@ import time
 from threading import Thread
 from web import start_server
 
-
-
-
 mb_size = 64
 images_directory = 'images'
 width = 32
 channels = 3
-num_classes = 10
 
-def __main__():
-	reader = DataReader(images_directory, width, width, channels, classes)
+from numpy import genfromtxt
+class_list = genfromtxt('classes.csv', delimiter=',')
+
+def main():
+	reader = DataReader(images_directory, width, width, channels, class_list)
 	Thread(target=lambda: start_server(reader)).start()
 
-	x = SSLModel(width, width, channels, mb_size, classes)
+	x = SSLModel(width, width, channels, mb_size, len(class_list))
 
 	for i in range(1000):
 
@@ -30,3 +29,7 @@ def __main__():
 			time.sleep(1)
 		else:
 			print(x.train_step(reader.minibatch_unlabeled(mb_size)))
+
+
+if __name__ == '__main__':
+	main()
