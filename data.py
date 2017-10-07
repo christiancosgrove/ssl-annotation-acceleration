@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import hashlib
 import os
 import base64
-
+from model import SSLModel
 import pickle
 
 class ImageInfo:
@@ -77,4 +77,30 @@ class DataReader:
 
         return self.images[indices], np.array(labels)
 
+    def label_image_positive(index, category):
+        self.image_list[index].labels[category] = 1
+    def label_image_negative(index, category):
+        self.image_list[index].labels[category] = -1
 
+
+    def get_labeling_batch(self, num_images, ssl_model):
+        indices = []
+        names = []
+
+        permutation = np.random.permutation(len(self.image_list))
+        i = 0
+        while len(indices) < num_images:
+            if i >= len(permutation):
+                return None
+
+            im = self.image_list[permutation[i]]
+            cnum = np.argmax(im.labels)
+            if im.labels[cnum] == 0:
+                indices.append(permutation[i])
+                names.append(self.image_list[permutation[i]].name)
+
+            i+=1
+
+        indices = np.array(indices)
+        predictions = np.argmax(ssl_model.predict(self.images[indices]), axis=1)
+        return indices, names, predictions

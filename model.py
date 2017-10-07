@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 
 class SSLModel:
     def __init__(self, width, height, channels, mb_size, classes, z_dim=128, learning_rate=1e-3, beta=0.5):
@@ -34,7 +35,7 @@ class SSLModel:
         self.G_loss = tf.reduce_mean(tf.square(tf.reduce_mean(self.D_real_feat, axis=0)-tf.reduce_mean(self.D_fake_feat, axis=0)))
 
 
-        theta_G = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='G_')# + tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='Q_')
+        theta_G = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='G_')
         theta_D = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='D_')
 
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -90,8 +91,9 @@ class SSLModel:
     def sample_z(self, m, n):
         return np.random.uniform(-1., 1., size=[m, n])
 
-
-
+    def predict(self, X): #get class probabilities for a minibatch of images
+        #todo: write implementation
+        return np.random.uniform(0., 1., size=(X.shape[0], self.classes)) 
 
 def lrelu(x, leak=0.2, name="lrelu"):
      with tf.variable_scope(name):

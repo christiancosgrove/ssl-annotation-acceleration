@@ -20,20 +20,22 @@ function nextPage() {
         'assignmentId':aid,
         'workerId':$('[name="workerId"]').val(),
         'time': (new Date() - dnow),
-        'clustering':$('[name="clustering"]').val()
+        'clustering':$('[name="clustering"]').val(),
+        'responses':[]
     }
 
-    for (var i = 0; i < """ + str(sizex * sizey) + """; i++) {
+    for (var i = 0; i < NUM_IMAGES; i++) {
         if ($('#i' + i).is(':checked')) {
-            dat['i' + i] = true
+            dat['responses'][i] = 1
+        } else {
+            dat['responses'][i] = -1
         }
     }
-    if (aid != 'ASSIGNMENT_ID_NOT_AVAILABLE') {
+    // if (aid != 'ASSIGNMENT_ID_NOT_AVAILABLE') {
         $.ajax({type:'POST', url:'/submit', data: JSON.stringify(dat), contentType:'application/json'}).done(function() {
             document.getElementById('form1').submit()
-            //location.reload()
         })
-    }
+    // }
 }
 
 document.onkeypress = function(e) {
@@ -52,7 +54,7 @@ function nextItem(checked) {
     $('#i' + currItemIndex).parent().hide();
     $('#i' + currItemIndex).prop('checked', checked);
     currItemIndex++;
-    if (currItemIndex < """ + str(sizex*sizey) + """) { 
+    if (currItemIndex < NUM_IMAGES) { 
         $('#i' + currItemIndex).parent().show();
     } else {
         nextPage();
