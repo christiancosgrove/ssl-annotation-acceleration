@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 
 class SSLModel:
-    def __init__(self, width, height, channels, mb_size, classes, z_dim=128, learning_rate=1e-3, beta=0.5):
+    def __init__(self, width, height, channels, mb_size, classes, z_dim=128, learning_rate=3e-4, beta=0.5):
         self.width = width
         self.height = height
         self.channels = channels
@@ -24,6 +24,9 @@ class SSLModel:
         
         self.X_fake = self.G(self.z)
         self.D_real, self.D_real_feat = self.D(self.X)
+
+        self.class_probabilities = tf.nn.softmax(self.D_real)
+
         self.D_real_lab, _ = self.D(self.X_lab, True)
         self.D_fake, self.D_fake_feat = self.D(self.X_fake, True)
 
@@ -32,7 +35,7 @@ class SSLModel:
 
         self.D_loss_unl = (-tf.reduce_mean(l_enc) + tf.reduce_mean(tf.nn.softplus(l_enc)) + tf.reduce_mean(tf.nn.softplus(l_gen)))
         self.D_loss_lab = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.D_real_lab, labels=self.Y))
-        self.D_loss = self.D_loss_unl + self.D_loss_lab
+        self.D_loss = self.D_loss_unl# + self.D_loss_lab
         self.G_loss = tf.reduce_mean(tf.square(tf.reduce_mean(self.D_real_feat, axis=0)-tf.reduce_mean(self.D_fake_feat, axis=0)))
 
 
@@ -98,8 +101,7 @@ class SSLModel:
         return np.random.uniform(-1., 1., size=[self.mb_size, self.z_dim])
 
     def predict(self, X): #get class probabilities for a minibatch of images
-        #todo: write implementation
-        return np.random.uniform(0., 1., size=(X.shape[0], self.classes))
+        return self.sess.run(self.class_probabilities, feed_dict={self.X: X, self.training_now:False})
 
     def sample_fake(self):
         return self.sess.run(self.X_fake, feed_dict={self.z: self.sample_z(), self.training_now:False})

@@ -55,7 +55,8 @@ class DataReader:
         self.image_list = pickle.load(open(filename, "wb"))
 
     def minibatch_unlabeled(self, mb_size):
-        return self.images[np.random.randint(self.images.shape[0], size=mb_size),:,:,:]
+        permutation = np.random.permutation(len(self.image_list))
+        return self.images[permutation[:mb_size]]
 
     def minibatch_labeled(self, mb_size):
         indices = []
@@ -65,7 +66,12 @@ class DataReader:
         i = 0
         while len(indices) < mb_size:
             if i >= len(permutation):
-                return None
+                if len(indices) > 0:
+                    permutation = np.random.permutation(len(self.image_list))
+                    i = 0
+                else:
+                    return
+
 
             im = self.image_list[permutation[i]]
             cnum = np.argmax(im.labels)
