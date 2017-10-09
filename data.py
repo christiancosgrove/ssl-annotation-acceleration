@@ -28,11 +28,11 @@ class DataReader:
         else:
             for i, filename in enumerate(glob.glob('images/*')):
                 info = ImageInfo(filename, len(self.class_list))
-                if filename[0] == 'i':
+                if os.path.basename(filename).startswith('i'):
                     info.labels[0] = 1
-                if filename[0] == 't':
+                if os.path.basename(filename).startswith('t'):
                     info.labels[1] = 1
-                if filename[0] == 's':
+                if os.path.basename(filename).startswith('s'):
                     info.labels[2] = 1
                 self.image_list.append(info)
 
@@ -64,7 +64,7 @@ class DataReader:
 
     def minibatch_unlabeled(self, mb_size):
         permutation = np.random.permutation(len(self.image_list))
-        return self.images[permutation[:mb_size]]
+        return np.array(self.images[permutation[:mb_size]])
 
     def minibatch_labeled(self, mb_size, class_index):
         indices = []
@@ -78,7 +78,7 @@ class DataReader:
                     permutation = np.random.permutation(len(self.image_list))
                     i = 0
                 else:
-                    return
+                    return None
 
 
             im = self.image_list[permutation[i]]
@@ -91,7 +91,7 @@ class DataReader:
 
             i+=1
 
-        return self.images[indices], np.array(labels)
+        return np.array(self.images[indices]), np.array(labels)
 
     def label_image_positive(self, index, category):
         self.image_list[index].labels[category] = 1
@@ -123,7 +123,7 @@ class DataReader:
 
 
     def autolabel(self, ssl_model, threshold, mb_size): # where threshold is a confidence threshold, above which an image is automatically positive
-        confidences = np.empty((0,3))
+        confidences = np.empty((0,len(self.class_list)))
         
         for i in range(len(self.image_list) // mb_size):
             confidences = np.append(confidences, ssl_model.predict(self.images[i * mb_size : (i + 1) * mb_size]), axis=0)
@@ -132,9 +132,9 @@ class DataReader:
 
         correct_count = 0
         total_labeled = 0
-        for i, c in enumerate(confidences):
-            m = np.argmax(c, axis = 0)
-            if c[m] > threshold and np.max(self.image_list[i].labels) == 0:
+        for i, conf in enumerate(confidences):
+            m = np.argmax(conf, axis=0)
+            if conf[m] > threshold and np.max(self.image_list[i].labels) == 0:
                 if self.image_list[i].labels[m] == 0:
                     self.image_list[i].labels[m] = 1
                     count += 1
@@ -146,5 +146,5 @@ class DataReader:
                     correct_count+=1
 
         print("{} images autolabeled.".format(count))
-        print("{:.1f} training accuracy".format(correct_count / total_labeled))
+        print("{:.3f} training accuracy".format(correct_count / total_labeled))
 
