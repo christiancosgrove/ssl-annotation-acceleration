@@ -17,7 +17,7 @@ class ImageInfo:
 
 class DataReader:
     def __init__(self, directory, width, height, channels, class_list, cache=True, load_filename=None):
-        self.image_list = {}
+        self.image_list = []
         self.width = width
         self.height=height
         self.channels = channels
@@ -27,13 +27,21 @@ class DataReader:
             self.load_image_list(load_filename)
         else:
             for i, filename in enumerate(glob.glob('images/*')):
-                self.image_list[i] = ImageInfo(filename, len(self.class_list))
+                info = ImageInfo(filename, len(self.class_list))
+                if filename[0] == 'i':
+                    info.labels[0] = 1
+                if filename[0] == 't':
+                    info.labels[1] = 1
+                if filename[0] == 's':
+                    info.labels[2] = 1
+                self.image_list.append(info)
+
         self.load('./cache',cache)
 
     def load(self, directory, cache=False): #loads images from directory; uses cache if available 
 
         h = hashlib.md5()
-        for i, image in sorted(self.image_list.items(), key=lambda x: x[1].name):
+        for i, image in sorted(list(enumerate(self.image_list)), key=lambda x: x[1].name):
             h.update(image.name.encode('ascii','ignore'))
 
         name = base64.b16encode(h.digest()).decode('ascii')# unique, hashed name for the file
@@ -45,7 +53,7 @@ class DataReader:
         else:
             print("Converting images to dataset file...")
             self.images = np.memmap(name, dtype='float32', mode='w+', shape=(len(self.image_list), self.width, self.height, self.channels))
-            self.images[:] = np.array(np.stack([scipy.misc.imresize(scipy.ndimage.imread(self.image_list[i].name), (self.width, self.height)) for i in self.image_list]),dtype=np.float32)
+            self.images[:] = np.array(np.stack([scipy.misc.imresize(scipy.ndimage.imread(v.name), (self.width, self.height)) for i,v in enumerate(self.image_list)]),dtype=np.float32)
             self.images[:] = self.images[:] / 127.5 - 1.0
 
     def save_image_list(self, filename):
@@ -58,7 +66,7 @@ class DataReader:
         permutation = np.random.permutation(len(self.image_list))
         return self.images[permutation[:mb_size]]
 
-    def minibatch_labeled(self, mb_size):
+    def minibatch_labeled(self, mb_size, class_index):
         indices = []
         labels = []
 
@@ -74,10 +82,12 @@ class DataReader:
 
 
             im = self.image_list[permutation[i]]
-            cnum = np.argmax(im.labels)
-            if im.labels[cnum] > 0:
+            if im.labels[class_index] == 1:
                 indices.append(permutation[i])
-                labels.append(cnum)
+                labels.append(1.0)
+            if im.labels[class_index] == -1:
+                indices.append(permutation[i])
+                labels.append(0.0)
 
             i+=1
 
@@ -110,3 +120,31 @@ class DataReader:
         indices = np.array(indices)
         predictions = np.argmax(ssl_model.predict(self.images[indices]), axis=1)
         return indices, names, predictions
+
+
+    def autolabel(self, ssl_model, threshold, mb_size): # where threshold is a confidence threshold, above which an image is automatically positive
+        confidences = np.empty((0,3))
+        
+        for i in range(len(self.image_list) // mb_size):
+            confidences = np.append(confidences, ssl_model.predict(self.images[i * mb_size : (i + 1) * mb_size]), axis=0)
+
+        count = 0
+
+        correct_count = 0
+        total_labeled = 0
+        for i, c in enumerate(confidences):
+            m = np.argmax(c, axis = 0)
+            if c[m] > threshold and np.max(self.image_list[i].labels) == 0:
+                if self.image_list[i].labels[m] == 0:
+                    self.image_list[i].labels[m] = 1
+                    count += 1
+
+            c = np.argmax(self.image_list[i].labels)
+            if self.image_list[i].labels[c] == 1:
+                total_labeled+=1
+                if m == c:
+                    correct_count+=1
+
+        print("{} images autolabeled.".format(count))
+        print("{:.1f} training accuracy".format(correct_count / total_labeled))
+

@@ -14,7 +14,7 @@ class SSLModel:
 
         self.X = tf.placeholder(tf.float32, shape=[mb_size, width, height, channels])
         self.X_lab = tf.placeholder(tf.float32, shape=[mb_size, width, height, channels])
-        self.Y = tf.placeholder(tf.int64, shape=[mb_size])
+        self.Y = tf.placeholder(tf.float32, shape=[mb_size])
         self.z = tf.placeholder(tf.float32, shape=[mb_size, self.z_dim])
         self.training_now = tf.placeholder(tf.bool)
 
@@ -34,8 +34,12 @@ class SSLModel:
         l_gen = tf.reduce_logsumexp(self.D_fake, axis=1)
 
         self.D_loss_unl = (-tf.reduce_mean(l_enc) + tf.reduce_mean(tf.nn.softplus(l_enc)) + tf.reduce_mean(tf.nn.softplus(l_gen)))
-        self.D_loss_lab = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.D_real_lab, labels=self.Y))
-        self.D_loss = self.D_loss_unl# + self.D_loss_lab
+        self.D_loss_lab = []
+
+        for i in range(self.classes):
+            class_logit = tf.squeeze(tf.slice(self.D_real_lab, [0,i],[-1,1]))
+            self.D_loss_lab.append(tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=class_logit, labels=self.Y)))
+        self.D_loss = [self.D_loss_unl + x for x in self.D_loss_lab]
         self.G_loss = tf.reduce_mean(tf.square(tf.reduce_mean(self.D_real_feat, axis=0)-tf.reduce_mean(self.D_fake_feat, axis=0)))
 
 
@@ -46,7 +50,7 @@ class SSLModel:
         with tf.control_dependencies(update_ops):
             opt = tf.train.AdamOptimizer(learning_rate=self.learning_rate, beta1=self.beta)
             # opt = tf.contrib.opt.MovingAverageOptimizer(opt)
-            self.D_solver = (opt.minimize(self.D_loss, var_list=theta_D))
+            self.D_solver = [(opt.minimize(x, var_list=theta_D)) for x in self.D_loss]
             self.G_solver = (opt.minimize(self.G_loss, var_list=theta_G))
 
         config = tf.ConfigProto()
@@ -84,11 +88,11 @@ class SSLModel:
             h = tf.layers.dense(h_X, self.classes)
             return h, h_X
 
-    def train_step(self, X_mb, X_lab_mb, Y_mb):
+    def train_step(self, X_mb, X_lab_mb, Y_mb, class_index):
         z_mb = self.sample_z()
 
         _, D_loss_curr = self.sess.run(
-            [self.D_solver, self.D_loss], feed_dict={self.X: X_mb, self.z: z_mb, self.X_lab: X_lab_mb, self.Y: Y_mb, self.training_now:True}
+            [self.D_solver[class_index], self.D_loss], feed_dict={self.X: X_mb, self.z: z_mb, self.X_lab: X_lab_mb, self.Y: Y_mb, self.training_now:True}
         )
 
         _, G_loss_curr = self.sess.run(
