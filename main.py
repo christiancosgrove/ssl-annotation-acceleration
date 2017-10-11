@@ -7,13 +7,14 @@ import time
 from threading import Thread
 from web import start_server
 import numpy as np
+import scipy.misc
 
 mb_size = 64
 images_directory = 'images'
 width = 32
 channels = 3
 
-chunk_size = 1
+chunk_size = 100
 
 from numpy import genfromtxt
 class_list = [x.decode('ascii') for x in genfromtxt('classes.csv', delimiter=',', dtype=None)]
@@ -29,27 +30,31 @@ def main():
 	for e in range(ITERATIONS):
 
 		t = time.time()
-		chunk_lab = reader.minibatch_labeled(mb_size, True)
-		chunk_unl = reader.minibatch_unlabeled(mb_size)
+		chunk_lab = reader.minibatch_labeled(mb_size * chunk_size, True)
+		chunk_neg = reader.minibatch_labeled(mb_size * chunk_size, False)
+		chunk_unl = reader.minibatch_unlabeled(mb_size * chunk_size)
 		t = time.time()
 		if chunk_lab is None:
 			continue
 		else:
-			Y_neg = np.array([11] * mb_size, np.int64)
 
-			dloss, gloss = model.train_step(chunk_unl, chunk_lab[0], chunk_lab[1], chunk_lab[0], chunk_lab[1])
-			print('.', end='', flush=True)
+			for i in range(chunk_size):
+				X_mb = chunk_unl[i * mb_size : (i+1) * mb_size]
+				X_lab_mb = chunk_lab[0][i * mb_size : (i+1) * mb_size]
+				Y_mb = chunk_lab[1][i * mb_size : (i+1) * mb_size]
+				Y_neg = chunk_neg if chunk_neg is not None else np.array([11] * mb_size, np.int64)
+
+				dloss, gloss = model.train_step(X_mb, X_lab_mb, Y_mb, X_lab_mb, Y_neg)
+				print('.', end='', flush=True)
 
 
-			if e % 100 == 0:
+			if e % 1 == 0:
 				print(dloss, gloss)
 				fake = model.sample_fake()[0]
 				fake = fake * 0.5 + 0.5
-				plt.imshow(fake)
-				plt.savefig("generated.png")
-				plt.close()
+				scipy.misc.imsave('generated.png', fake)
 
-				reader.autolabel(model, 0.95, mb_size)
+				reader.autolabel(model, 0.95)
 
 
 if __name__ == '__main__':

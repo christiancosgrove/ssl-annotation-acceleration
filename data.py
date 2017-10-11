@@ -30,12 +30,14 @@ class DataReader:
         else:
             for i, filename in enumerate(glob.glob('images/*')):
                 info = ImageInfo(filename, len(self.class_list))
-                if os.path.basename(filename).startswith('i'):
-                    info.labels[0] = 1
-                if os.path.basename(filename).startswith('t'):
-                    info.labels[1] = 1
-                if os.path.basename(filename).startswith('s'):
-                    info.labels[2] = 1
+                #FOR DEBUGGING PURPOSES: set initial labels based on filenames
+                if np.random.uniform() < 0.05:
+                    if os.path.basename(filename).startswith('i'):
+                        info.labels[0] = 1
+                    elif os.path.basename(filename).startswith('t'):
+                        info.labels[1] = 1
+                    elif os.path.basename(filename).startswith('s'):
+                        info.labels[2] = 1
                 self.image_list.append(info)
 
         self.load('./cache',cache)
@@ -94,7 +96,7 @@ class DataReader:
                     indices.append(permutation[i])
                     labels.append(cnum)
             else:
-                for cnum, v in np.enumerate(im.labels):
+                for cnum, v in np.ndenumerate(im.labels):
                     if v == -1:
                         indices.append(permutation[i])
                         labels.append(cnum)
