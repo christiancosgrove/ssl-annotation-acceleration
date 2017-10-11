@@ -39,7 +39,9 @@ def index():
     for i in range(num_images):
         style = "display:none" if i != 0 else ""
         iname = "i" + str(i)
-        html += '<div style="' + style + '">' + reader.class_list[predictions[i]] + '<input type="checkbox" id="{}" name="{}"><label for="{}"><img src="{}" /></label></div>'.format(iname, iname, iname, names[i])
+        html += '<div style="' + style + '">Is this a <strong>' + reader.class_list[predictions[i]] + '</strong>?<br><input type="checkbox" id="{}" name="{}"><label for="{}"><img src="{}" /></label></div>'.format(iname, iname, iname, names[i])
+    html += '<input type="button" value="No (shortcut N)" onclick="nextItem(false)"/>'
+    html += '<input type="button" value="Yes (shortcut M)" onclick="nextItem(true)"/>'
     html += '</form></body></html>'
     return html
 
