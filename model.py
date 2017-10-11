@@ -14,8 +14,10 @@ class SSLModel:
 
         self.X = tf.placeholder(tf.float32, shape=[mb_size, width, height, channels])
         self.X_lab = tf.placeholder(tf.float32, shape=[mb_size, width, height, channels])
+        self.X_lab_neg = tf.placeholder(tf.float32, shape=[mb_size, width, height, channels])
         # self.Y = tf.placeholder(tf.float32, shape=[mb_size])
         self.Y = tf.placeholder(tf.int64, shape=[mb_size])
+        self.Y_neg = tf.placeholder(tf.int64, shape=[mb_size])
         self.z = tf.placeholder(tf.float32, shape=[mb_size, self.z_dim])
         self.training_now = tf.placeholder(tf.bool)
 
@@ -28,7 +30,8 @@ class SSLModel:
 
         self.class_probabilities = tf.nn.softmax(self.D_real)
 
-        self.D_real_lab, _ = self.D(self.X_lab, True)
+        self.D_real_lab, _     = self.D(self.X_lab, True)
+        self.D_real_lab_neg, _ = self.D(self.X_lab_neg, True)
         self.D_fake, self.D_fake_feat = self.D(self.X_fake, True)
 
         l_enc = tf.reduce_logsumexp(self.D_real, axis=1)
@@ -38,11 +41,17 @@ class SSLModel:
         # self.D_loss_lab = []
 
         self.D_loss_lab = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.D_real_lab, labels=self.Y))
+        
+        #negative loss
+        negative_logits = tf.gather(self.D_real_lab_neg, self.Y_neg, axis=-1)
+        self.D_loss_lab+= tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=negative_logits, labels=tf.zeros_like(negative_logits)))
+
+
         # for i in range(self.classes):
         #     class_logit = tf.squeeze(tf.slice(self.D_real_lab, [0,i],[-1,1]))
         #     self.D_loss_lab.append(tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=class_logit, labels=self.Y)))
         # self.D_loss = [self.D_loss_unl + x for x in self.D_loss_lab]
-        self.D_loss = self.D_loss_lab#self.D_loss_unl + self.D_loss_lab
+        self.D_loss = self.D_loss_unl + self.D_loss_lab
         self.G_loss = tf.reduce_mean(tf.square(tf.reduce_mean(self.D_real_feat, axis=0)-tf.reduce_mean(self.D_fake_feat, axis=0)))
 
 
@@ -92,12 +101,20 @@ class SSLModel:
             h = tf.layers.dense(h_X, self.classes)
             return h, h_X
 
-    def train_step(self, X_mb, X_lab_mb, Y_mb):
+    def train_step(self, X_mb, X_lab_mb, Y_mb, X_lab_neg_mb, Y_neg_mb):
         z_mb = self.sample_z()
 
         _, D_loss_curr = self.sess.run(
-            [self.D_solver, self.D_loss], feed_dict={self.X: X_mb, self.z: z_mb, self.X_lab: X_lab_mb, self.Y: Y_mb, self.training_now:True}
-        )
+            [self.D_solver, self.D_loss], feed_dict=
+                {
+                    self.X: X_mb,
+                    self.z: z_mb,
+                    self.X_lab: X_lab_mb,
+                    self.Y: Y_mb,
+                    self.X_lab_neg: X_lab_neg_mb,
+                    self.Y_neg: Y_neg_mb,
+                    self.training_now:True
+                })
 
         _, G_loss_curr = self.sess.run(
             [self.G_solver, self.G_loss], feed_dict={self.X: X_mb, self.z: z_mb, self.X_lab: X_lab_mb, self.Y: Y_mb, self.training_now:True}

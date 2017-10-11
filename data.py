@@ -14,6 +14,8 @@ class ImageInfo:
     def __init__(self, name, classes):
         self.name = name
         self.labels = np.array([0] * classes)
+        self.autolabeled = False
+        self.test = False
 
 class DataReader:
     def __init__(self, directory, width, height, channels, class_list, cache=True, load_filename=None):
@@ -66,7 +68,8 @@ class DataReader:
         permutation = np.random.permutation(len(self.image_list))
         return np.array(self.images[permutation[:mb_size]])
 
-    def minibatch_labeled(self, mb_size, class_index):
+    #get positive or negative labeled minibatch
+    def minibatch_labeled(self, mb_size, positive):
         indices = []
         labels = []
 
@@ -82,19 +85,29 @@ class DataReader:
 
 
             im = self.image_list[permutation[i]]
-            if im.labels[class_index] == 1:
-                indices.append(permutation[i])
-                labels.append(1.0)
-            if im.labels[class_index] == -1:
-                indices.append(permutation[i])
-                labels.append(0.0)
+            if im.autolabeled or im.test:
+                continue
 
+            if positive:
+                cnum = np.argmax(im.labels)
+                if im.labels[cnum] > 0:
+                    indices.append(permutation[i])
+                    labels.append(cnum)
+            else:
+                for cnum, v in np.enumerate(im.labels):
+                    if v == -1:
+                        indices.append(permutation[i])
+                        labels.append(cnum)
             i+=1
+
 
         return np.array(self.images[indices]), np.array(labels)
 
     def label_image_positive(self, index, category):
         self.image_list[index].labels[category] = 1
+
+        if np.random.uniform() < 0.5:
+            self.image_list[index].test = True # randomly assign test label
     def label_image_negative(self, index, category):
         self.image_list[index].labels[category] = -1
 
@@ -122,11 +135,11 @@ class DataReader:
         return indices, names, predictions
 
 
-    def autolabel(self, ssl_model, threshold, mb_size): # where threshold is a confidence threshold, above which an image is automatically positive
+    def autolabel(self, ssl_model, threshold): # where threshold is a confidence threshold, above which an image is automatically positive
         confidences = np.empty((0,len(self.class_list)))
         
-        for i in range(len(self.image_list) // mb_size):
-            confidences = np.append(confidences, ssl_model.predict(self.images[i * mb_size : (i + 1) * mb_size]), axis=0)
+        for i in range(len(self.image_list) // ssl_model.mb_size):
+            confidences = np.append(confidences, ssl_model.predict(self.images[i * ssl_model.mb_size : (i + 1) * ssl_model.mb_size]), axis=0)
 
         count = 0
 
@@ -137,6 +150,7 @@ class DataReader:
             if conf[m] > threshold and np.max(self.image_list[i].labels) == 0:
                 if self.image_list[i].labels[m] == 0:
                     self.image_list[i].labels[m] = 1
+                    self.image_list[i].autolabeled = True
                     count += 1
 
             c = np.argmax(self.image_list[i].labels)
@@ -148,3 +162,39 @@ class DataReader:
         print("{} images autolabeled.".format(count))
         print("{:.3f} training accuracy".format(correct_count / total_labeled))
 
+    #returns a test accuracy on the current test set of the model
+    def evaluate_model(self, ssl_model):
+        test_indices = [i for i, im in enumerate(self.image_list) if im.test]
+
+        # too few test indices!
+        if len(test_indices) < ssl_model.mb_size:
+            return None
+
+        # in case test_indices is not the right length, include some wrap
+        indices_modified = np.repeat(test_indices, 2)[:mb_size*int(np.ceil(len(test_indices) / ssl_model.mb_size))]
+        confidences = np.empty((0,len(indices_modified)))
+
+        for i in range(len(indices_modified) // ssl_model.mb_size):
+            confidences = np.append(
+                confidences,
+                ssl_model.predict(self.images[
+                    indices_modified[i * ssl_model.mb_size : (i + 1) * ssl_model.mb_size]]), axis=0)
+
+        correct_count = 0
+        total_labeled = 0
+
+        for i in range(len(test_indices)):
+            c_pred = np.argmax(confidences[i])
+            c_test = np.argmax(self.image_list(test_indices[i]).labels)
+            if c_pred == c_test:
+                correct_count+=1
+            total_labeled+=1
+
+        return (correct_count, total_labeled)
+
+
+
+
+    def start_new_test_period(self):
+        for im in self.image_list:
+            im.test = False

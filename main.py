@@ -6,6 +6,7 @@ from model import SSLModel
 import time
 from threading import Thread
 from web import start_server
+import numpy as np
 
 mb_size = 64
 images_directory = 'images'
@@ -28,17 +29,15 @@ def main():
 	for e in range(ITERATIONS):
 
 		t = time.time()
-		chunk_lab = reader.minibatch_labeled(chunk_size * mb_size)
-		chunk_unl = reader.minibatch_unlabeled(chunk_size * mb_size)
+		chunk_lab = reader.minibatch_labeled(mb_size, True)
+		chunk_unl = reader.minibatch_unlabeled(mb_size)
 		t = time.time()
 		if chunk_lab is None:
 			continue
 		else:
-			i = 0
-			X_u = chunk_unl[i * mb_size : (i+1) * mb_size]
-			X_l = chunk_lab[0][i * mb_size : (i+1) * mb_size]
-			Y = chunk_lab[1][i * mb_size : (i+1) * mb_size]
-			dloss, gloss = model.train_step(X_u, X_l, Y)
+			Y_neg = np.array([11] * mb_size, np.int64)
+
+			dloss, gloss = model.train_step(chunk_unl, chunk_lab[0], chunk_lab[1], chunk_lab[0], chunk_lab[1])
 			print('.', end='', flush=True)
 
 
