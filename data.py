@@ -12,10 +12,23 @@ import pickle
 
 class ImageInfo:
     def __init__(self, name, classes):
+        #filename
         self.name = name
+
+        #current label for this image
+        #1 designates positive label (image belongs to class)
+        #-1 designates negative label (image does not belong to class)
+        #0 designates unknown
         self.labels = np.array([0] * classes)
+
+        #whether the ground-truth labels contained in self.labels were assigned by the classifier
+        #if so, do not use it to train the classifier, so as to avoid bias
         self.autolabeled = False
-        self.test = False
+
+        #current classifier confidences for this image
+        self.prediction = np.array([0] * classes)
+        #whether this image is currently in the test set
+        self.test = False 
 
 class DataReader:
     def __init__(self, directory, width, height, channels, class_list, cache=True, load_filename=None):
@@ -114,7 +127,7 @@ class DataReader:
         self.image_list[index].labels[category] = -1
 
 
-    def get_labeling_batch(self, num_images, ssl_model):
+    def get_labeling_batch(self, num_images):
         indices = []
         names = []
 
@@ -133,7 +146,7 @@ class DataReader:
             i+=1
 
         indices = np.array(indices)
-        predictions = np.argmax(ssl_model.predict(self.images[indices]), axis=1)
+        predictions = np.array([np.argmax(self.image_list[ind].predictions, axis=1) for ind in indices])
         return indices, names, predictions
 
 
@@ -148,6 +161,8 @@ class DataReader:
         correct_count = 0
         total_labeled = 0
         for i, conf in enumerate(confidences):
+            self.image_list[i].prediction = conf
+
             m = np.argmax(conf, axis=0)
             if conf[m] > threshold and np.max(self.image_list[i].labels) == 0:
                 if self.image_list[i].labels[m] == 0:
