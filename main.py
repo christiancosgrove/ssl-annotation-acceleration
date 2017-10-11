@@ -24,8 +24,8 @@ ITERATIONS = 100000
 def main():
 	reader = DataReader(images_directory, width, width, channels, class_list)
 
+	Thread(target=lambda: start_server(reader)).start()
 	model = SSLModel(width, width, channels, mb_size, len(class_list))
-	Thread(target=lambda: start_server(reader, model)).start()
 
 	for e in range(ITERATIONS):
 

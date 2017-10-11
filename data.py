@@ -146,7 +146,7 @@ class DataReader:
             i+=1
 
         indices = np.array(indices)
-        predictions = np.array([np.argmax(self.image_list[ind].predictions, axis=1) for ind in indices])
+        predictions = np.array([np.argmax(self.image_list[ind].prediction, axis=1) for ind in indices])
         return indices, names, predictions
 
 
