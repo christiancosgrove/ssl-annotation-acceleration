@@ -5,3 +5,4 @@ images
 *.npz
 __pycache__
 *.csv
+checkpoints

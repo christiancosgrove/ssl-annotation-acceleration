@@ -1,8 +1,9 @@
 import tensorflow as tf
 import numpy as np
+import os
 
 class SSLModel:
-    def __init__(self, width, height, channels, mb_size, classes, z_dim=100, learning_rate=3e-4, beta=0.5):
+    def __init__(self, width, height, channels, mb_size, classes, checkpoint_dir, z_dim=100, learning_rate=3e-4, beta=0.5, load=False):
         self.width = width
         self.height = height
         self.channels = channels
@@ -21,9 +22,13 @@ class SSLModel:
         self.z = tf.placeholder(tf.float32, shape=[mb_size, self.z_dim])
         self.training_now = tf.placeholder(tf.bool)
 
-        self.build() 
 
-    def build(self):
+        self.global_step = 0
+
+        self.checkpoint_dir = checkpoint_dir
+        self.build(load) 
+
+    def build(self, load):
         
         self.X_fake = self.G(self.z)
         self.D_real, self.D_real_feat = self.D(self.X)
@@ -55,6 +60,7 @@ class SSLModel:
         self.G_loss = tf.reduce_mean(tf.square(tf.reduce_mean(self.D_real_feat, axis=0)-tf.reduce_mean(self.D_fake_feat, axis=0)))
 
         #pull-away term - increases entropy of generated images (measured by discriminator features)
+        #first applied to GANs in Dai et al. 2017 https://arxiv.org/abs/1705.09783
         feat_norm = self.D_fake_feat / tf.norm(self.D_fake_feat, axis=1, keep_dims=True)
         G_pt = tf.tensordot(feat_norm, feat_norm, axes=[[1],[1]])
         self.G_loss += tf.reduce_mean(G_pt)
@@ -74,7 +80,10 @@ class SSLModel:
         config.gpu_options.allow_growth = True
         self.sess = tf.Session(config=config)
         self.sess.run(tf.global_variables_initializer())
+        self.saver = tf.train.Saver()
 
+        if load:
+            self.saver.restore(self.sess, tf.train.latest_checkpoint(checkpoint_dir=self.checkpoint_dir,latest_filename='checkpoint'))
 
     def G(self, z):
         with tf.variable_scope('G_'):
@@ -124,6 +133,8 @@ class SSLModel:
             [self.G_solver, self.G_loss], feed_dict={self.X: X_mb, self.z: z_mb, self.X_lab: X_lab_mb, self.Y: Y_mb, self.training_now:True}
         )
 
+        self.global_step += 1
+
         return (D_loss_curr, G_loss_curr)
 
     def sample_z(self):
@@ -134,6 +145,9 @@ class SSLModel:
 
     def sample_fake(self):
         return self.sess.run(self.X_fake, feed_dict={self.z: self.sample_z(), self.training_now:False})
+
+    def save(self):
+        self.saver.save(sess=self.sess, save_path=os.path.join(self.checkpoint_dir,'checkpoint'), global_step=self.global_step)
 
 def lrelu(x, leak=0.2, name="lrelu"):
      with tf.variable_scope(name):

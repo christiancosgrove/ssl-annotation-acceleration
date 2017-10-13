@@ -8,6 +8,10 @@ from threading import Thread
 from web import start_server
 import numpy as np
 import scipy.misc
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('--load', dest='LOAD', action='store_true')
+args = parser.parse_args()
 
 mb_size = 32
 images_directory = 'images'
@@ -25,7 +29,10 @@ def main():
 	reader = DataReader(images_directory, width, width, channels, class_list)
 
 	Thread(target=lambda: start_server(reader)).start()
-	model = SSLModel(width, width, channels, mb_size, len(class_list))
+	import os
+	os.makedirs('checkpoints', exist_ok=True)
+
+	model = SSLModel(width, width, channels, mb_size, len(class_list), 'checkpoints', load=args.LOAD)
 
 	for e in range(ITERATIONS):
 
@@ -47,12 +54,9 @@ def main():
 				dloss, gloss = model.train_step(X_mb, X_lab_mb, Y_mb, X_lab_mb, Y_neg)
 				print('.', end='', flush=True)
 
-
-
 			correct_count, total_labeled = reader.evaluate_model(model)
 
 			print("{} correct, {} total from test set, {}% correct".format(correct_count, total_labeled, int(correct_count / total_labeled * 100)));
-
 			if e % 5 == 0:
 				print(dloss, gloss)
 				fake = model.sample_fake()[0]
@@ -60,7 +64,7 @@ def main():
 				scipy.misc.imsave('generated.png', fake)
 
 				reader.autolabel(model, 0.95)
-
+				model.save()
 
 if __name__ == '__main__':
 	main()
