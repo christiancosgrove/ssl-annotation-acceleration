@@ -30,6 +30,9 @@ class ImageInfo:
         #whether this image is currently in the test set
         self.test = False 
 
+        self.url = None
+import csv
+
 class DataReader:
     def __init__(self, directory, width, height, channels, class_list, cache=True, load_filename=None):
         self.image_list = []
@@ -41,16 +44,30 @@ class DataReader:
         if load_filename is not None:
             self.load_image_list(load_filename)
         else:
+            urls = {}
+            try:
+                with open('urls.csv', 'r', encoding='utf-8') as f:
+                    reader = csv.reader(f)
+                    for row in reader:
+                        try:
+                            fname, url = row
+                            urls[os.path.join('images', fname)] = row[1]
+                        except: 
+                            pass
+            except Exception as e:
+                pass
+
             for i, filename in enumerate(glob.glob('images/*')):
                 info = ImageInfo(filename, len(self.class_list))
                 #FOR DEBUGGING PURPOSES: set initial labels based on filenames
                 if np.random.uniform() < 0.05:
-                    if os.path.basename(filename).startswith('i'):
-                        info.labels[0] = 1
-                    elif os.path.basename(filename).startswith('t'):
-                        info.labels[1] = 1
-                    elif os.path.basename(filename).startswith('s'):
-                        info.labels[2] = 1
+                    for j, cname in enumerate(class_list):
+                        if os.path.basename(filename).startswith(cname):
+                            info.labels[j] = 1
+
+
+                if urls.get(filename) is not None:
+                    info.url = urls[filename]
                 self.image_list.append(info)
 
         self.load('./cache',cache)
@@ -141,7 +158,10 @@ class DataReader:
             cnum = np.argmax(im.labels)
             if im.labels[cnum] == 0:
                 indices.append(permutation[i])
-                names.append(self.image_list[permutation[i]].name)
+                if self.image_list[permutation[i]].url is not None:
+                    names.append(self.image_list[permutation[i]].url)
+                else:
+                    names.append(self.image_list[permutation[i]].name)
 
             i+=1
 
