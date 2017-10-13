@@ -9,7 +9,7 @@ from web import start_server
 import numpy as np
 import scipy.misc
 
-mb_size = 64
+mb_size = 32
 images_directory = 'images'
 width = 32
 channels = 3
@@ -34,6 +34,7 @@ def main():
 		chunk_neg = reader.minibatch_labeled(mb_size * chunk_size, False)
 		chunk_unl = reader.minibatch_unlabeled(mb_size * chunk_size)
 		t = time.time()
+		print(chunk_lab is None)
 		if chunk_lab is None:
 			continue
 		else:

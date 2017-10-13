@@ -117,19 +117,17 @@ class DataReader:
 
 
             im = self.image_list[permutation[i]]
-            if im.autolabeled or im.test:
-                continue
-
-            if positive:
-                cnum = np.argmax(im.labels)
-                if im.labels[cnum] > 0:
-                    indices.append(permutation[i])
-                    labels.append(cnum)
-            else:
-                for cnum, v in np.ndenumerate(im.labels):
-                    if v == -1:
+            if not im.autolabeled and not im.test:
+                if positive:
+                    cnum = np.argmax(im.labels)
+                    if im.labels[cnum] > 0:
                         indices.append(permutation[i])
                         labels.append(cnum)
+                else:
+                    for cnum, v in np.ndenumerate(im.labels):
+                        if v == -1:
+                            indices.append(permutation[i])
+                            labels.append(cnum)
             i+=1
 
 

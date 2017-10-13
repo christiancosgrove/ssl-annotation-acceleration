@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 
 class SSLModel:
-    def __init__(self, width, height, channels, mb_size, classes, z_dim=128, learning_rate=3e-4, beta=0.5):
+    def __init__(self, width, height, channels, mb_size, classes, z_dim=100, learning_rate=3e-4, beta=0.5):
         self.width = width
         self.height = height
         self.channels = channels
