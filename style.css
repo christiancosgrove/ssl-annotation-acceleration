@@ -1,6 +1,6 @@
 
 input[type="checkbox"] {display: none} 
-label { background-color:#333; color:#FFF; }
+// label { background-color:#333; color:#FFF; }
 label { padding: 16px; margin:2px}
 label image { display:block }
 input[type="checkbox"]:checked + label {
@@ -9,7 +9,8 @@ input[type="checkbox"]:checked + label {
 td { padding: 2px;}
 
 img { 
-    width: 128px; height: 128px;
+    // width: 128px;
+    height: 512px;
     border-color:white;
     border-width:10px;
     border:solid;
@@ -17,4 +18,17 @@ img {
       image-rendering: auto;
       image-rendering: crisp-edges;
       image-rendering: pixelated;
+}
+
+.heading {
+	font-size: 48px;
+}
+
+p {
+	font-size: 24px;
+}
+
+.nextbtn {
+	padding:32px;
+	font-size:30px;
 }

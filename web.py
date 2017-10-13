@@ -39,9 +39,10 @@ def index():
     for i in range(num_images):
         style = "display:none" if i != 0 else ""
         iname = "i" + str(i)
-        html += '<div style="' + style + '">Is this a <strong>' + reader.class_list[predictions[i]] + '</strong>?<br><input type="checkbox" id="{}" name="{}"><label for="{}"><img src="{}" /></label></div>'.format(iname, iname, iname, names[i])
-    html += '<input type="button" value="No (shortcut N)" onclick="nextItem(false)"/>'
-    html += '<input type="button" value="Yes (shortcut M)" onclick="nextItem(true)"/>'
+        html += '<div style="' + style + '"><span class="heading">Is this a <strong>' + reader.class_list[predictions[i]] + '</strong>?</span><br><input type="checkbox" id="{}" name="{}"><label for="{}"><img src="{}" /></label></div>'.format(iname, iname, iname, names[i])
+    html += '<a class="nextbtn" href="#" onclick="nextItem(false)">No (shortcut <strong>N</strong>)</a>'
+    html += '<a class="nextbtn" href="#" onclick="nextItem(true)">Yes (shortcut <strong>M</strong>)</a>'
+    html += '<p>Say <strong>no</strong> for any <strong>vehicle interiors</strong>, or any case where <strong>the type of vehicle is unclear</strong>.</p>'
     html += '</form></body></html>'
     return html
 
