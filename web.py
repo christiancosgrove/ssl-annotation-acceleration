@@ -13,7 +13,7 @@ app = Flask(__name__)
 reader = None
 # model = None
 
-num_images = 64
+num_images = 32
 
 USE_SANDBOX = True
 post_endpoint = 'https://workersandbox.mturk.com/mturk/externalSubmit' if USE_SANDBOX else 'https://www.mturk.com/mturk/externalSubmit'

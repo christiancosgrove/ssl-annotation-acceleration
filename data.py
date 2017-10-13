@@ -65,6 +65,9 @@ class DataReader:
                         if os.path.basename(filename).startswith(cname):
                             info.labels[j] = 1
 
+                            if np.random.uniform() < 0.2:
+                                info.test = True
+
 
                 if urls.get(filename) is not None:
                     info.url = urls[filename]
@@ -206,8 +209,8 @@ class DataReader:
             return None
 
         # in case test_indices is not the right length, include some wrap
-        indices_modified = np.repeat(test_indices, 2)[:mb_size*int(np.ceil(len(test_indices) / ssl_model.mb_size))]
-        confidences = np.empty((0,len(indices_modified)))
+        indices_modified = np.repeat(test_indices, 2)[:ssl_model.mb_size*int(np.ceil(len(test_indices) / ssl_model.mb_size))]
+        confidences = np.empty((0,len(self.class_list)))
 
         for i in range(len(indices_modified) // ssl_model.mb_size):
             confidences = np.append(
@@ -219,8 +222,8 @@ class DataReader:
         total_labeled = 0
 
         for i in range(len(test_indices)):
-            c_pred = np.argmax(confidences[i])
-            c_test = np.argmax(self.image_list(test_indices[i]).labels)
+            c_pred = np.argmax(confidences[i], axis=1)
+            c_test = np.argmax(self.image_list[test_indices[i]].labels, axis=0)
             if c_pred == c_test:
                 correct_count+=1
             total_labeled+=1

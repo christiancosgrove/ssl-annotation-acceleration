@@ -34,7 +34,6 @@ def main():
 		chunk_neg = reader.minibatch_labeled(mb_size * chunk_size, False)
 		chunk_unl = reader.minibatch_unlabeled(mb_size * chunk_size)
 		t = time.time()
-		print(chunk_lab is None)
 		if chunk_lab is None:
 			continue
 		else:
@@ -49,7 +48,12 @@ def main():
 				print('.', end='', flush=True)
 
 
-			if e % 1 == 0:
+
+			correct_count, total_labeled = reader.evaluate_model(model)
+
+			print("{} correct, {} total from test set, {}% correct".format(correct_count, total_labeled, int(correct_count / total_labeled * 100)));
+
+			if e % 5 == 0:
 				print(dloss, gloss)
 				fake = model.sample_fake()[0]
 				fake = fake * 0.5 + 0.5

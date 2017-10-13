@@ -54,6 +54,10 @@ class SSLModel:
         self.D_loss = self.D_loss_unl + self.D_loss_lab
         self.G_loss = tf.reduce_mean(tf.square(tf.reduce_mean(self.D_real_feat, axis=0)-tf.reduce_mean(self.D_fake_feat, axis=0)))
 
+        #pull-away term - increases entropy of generated images (measured by discriminator features)
+        feat_norm = self.D_fake_feat / tf.norm(self.D_fake_feat, axis=1, keep_dims=True)
+        G_pt = tf.tensordot(feat_norm, feat_norm, axes=[[1],[1]])
+        self.G_loss += tf.reduce_mean(G_pt)
 
         theta_G = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='G_')
         theta_D = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='D_')
