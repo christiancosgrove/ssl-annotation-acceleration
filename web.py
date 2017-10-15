@@ -14,8 +14,8 @@ reader = None
 # model = None
 
 num_images = 32
-
 num_images_groundtruth = 16
+groundtruth_threshold = 0.8 #acceptance threshold for performance on ground-truth images
 
 
 USE_SANDBOX = True
@@ -86,14 +86,17 @@ def submit():
             gt_count+=1
             if positives[i] == r:
                 gt_correct+=1
-        else:
-            if r == 1:
-                print('positive label {}'.format(imgs[i]))
-                reader.label_image_positive(imgs[i], categories[i])
-            elif r == -1:
-                reader.label_image_negative(imgs[i], categories[i])
-
-    print("{}/{} correct".format(gt_correct, gt_count))
+    if gt_count >= groundtruth_threshold * gt_correct:
+        for i, r in enumerate(responses):
+            if positives[i] == 0:
+                if r == 1:
+                    print('positive label {}'.format(imgs[i]))
+                    reader.label_image_positive(imgs[i], categories[i])
+                elif r == -1:
+                    reader.label_image_negative(imgs[i], categories[i])
+        print("{}/{} correct, accept".format(gt_correct, gt_count))
+    else:
+        print("{}/{} correct, reject".format(gt_correct, gt_count))
 
     return 'done'
 
