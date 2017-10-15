@@ -90,8 +90,24 @@ class DataReader:
         else:
             print("Converting images to dataset file...")
             self.images = np.memmap(name, dtype='float32', mode='w+', shape=(len(self.image_list), self.width, self.height, self.channels))
-            self.images[:] = np.array(np.stack([scipy.misc.imresize(scipy.ndimage.imread(v.name), (self.width, self.height)) for i,v in enumerate(self.image_list)]),dtype=np.float32)
-            self.images[:] = self.images[:] / 127.5 - 1.0
+            
+            percent = 0
+
+            for i,v in enumerate(self.image_list):
+                im = scipy.ndimage.imread(v.name)
+                if im.shape[0] > im.shape[1]:
+                    edge = (im.shape[0] - im.shape[1]) // 2
+                    im = im[edge:-edge,:,:]
+                elif im.shape[1] > im.shape[0]:
+                    edge = (im.shape[1] - im.shape[0]) // 2
+                    im = im[:, edge:-edge, :]
+                im = im / 127.5 - 1.0
+                self.images[i] = scipy.misc.imresize(im, (self.width, self.height)) 
+                
+                if 100 * i // len(self.image_list) != percent:
+                    percent = 100 * i // len(self.image_list)
+                    print("{}%".format(percent))
+
 
     def save_image_list(self, filename):
         pickle.dump(self.image_list, open(filename, "wb"))
