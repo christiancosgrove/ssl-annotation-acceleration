@@ -15,7 +15,7 @@ reader = None
 
 num_images = 32
 num_images_groundtruth = 16
-groundtruth_threshold = 0.8 #acceptance threshold for performance on ground-truth images
+groundtruth_threshold = 0.75 #acceptance threshold for performance on ground-truth images
 
 
 USE_SANDBOX = True

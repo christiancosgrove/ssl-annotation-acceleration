@@ -60,7 +60,7 @@ class DataReader:
             for i, filename in enumerate(glob.glob('images/*')):
                 info = ImageInfo(filename, len(self.class_list))
                 #FOR DEBUGGING PURPOSES: set initial labels based on filenames
-                if np.random.uniform() < 0.05:
+                if np.random.uniform() < 0.5:
                     for j, cname in enumerate(class_list):
                         if os.path.basename(filename).startswith(cname):
                             info.labels[j] = 1
@@ -311,7 +311,7 @@ class DataReader:
             return None, None
 
         # in case test_indices is not the right length, include some wrap
-        indices_modified = np.repeat(test_indices, 2)[:ssl_model.mb_size*int(np.ceil(len(test_indices) / ssl_model.mb_size))]
+        indices_modified = np.tile(test_indices, 2)[:ssl_model.mb_size*int(np.ceil(len(test_indices) / ssl_model.mb_size))]
         confidences = np.empty((0,len(self.class_list)))
 
         for i in range(len(indices_modified) // ssl_model.mb_size):
