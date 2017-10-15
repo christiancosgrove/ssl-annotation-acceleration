@@ -66,6 +66,7 @@ def index():
     html += '<a class="nextbtn" href="#" onclick="nextItem(false)">No (shortcut <strong>N</strong>)</a>'
     html += '<a class="nextbtn" href="#" onclick="nextItem(true)">Yes (shortcut <strong>M</strong>)</a>'
     html += '<p>Say <strong>no</strong> for any <strong>vehicle interiors</strong>, or any case where <strong>the type of vehicle is unclear</strong>.</p>'
+    html += '<p>Options: {}</p>'.format(reader.class_list.join(', '))
     html += '</form></body></html>'
     return html
 
