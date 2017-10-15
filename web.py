@@ -29,7 +29,7 @@ def index():
     with open('style.css') as cssfile:
         css = cssfile.read()
     with open('interface.js') as jsfile:
-        js = jsfile.read().replace('NUM_IMAGES', str(num_images))
+        js = jsfile.read().replace('NUM_IMAGES', str(num_images+num_images_groundtruth))
 
     html = '<head><style>{}</style><script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script><script>{}</script></head><body>'.format(css, js)
 
@@ -48,9 +48,15 @@ def index():
 
     perm = np.random.permutation(len(total_indices))
 
-    html += '<input type="hidden" name="c" value="{}"></input>'.format(base64.urlsafe_b64encode(total_predictions[perm]).decode('ascii'))
-    html += '<input type="hidden" name="s" value="{}"></input>'.format(base64.urlsafe_b64encode(total_indices[perm]).decode('ascii'))
-    html += '<input type="hidden" name="p" value="{}"></input>'.format(base64.urlsafe_b64encode(total_positives[perm]).decode('ascii'))
+
+    total_indices = total_indices[perm]
+    total_names = [total_names[i] for i in perm]
+    total_predictions = total_predictions[perm]
+    total_positives = total_positives[perm]
+
+    html += '<input type="hidden" name="c" value="{}"></input>'.format(base64.urlsafe_b64encode(total_predictions).decode('ascii'))
+    html += '<input type="hidden" name="s" value="{}"></input>'.format(base64.urlsafe_b64encode(total_indices).decode('ascii'))
+    html += '<input type="hidden" name="p" value="{}"></input>'.format(base64.urlsafe_b64encode(total_positives).decode('ascii'))
 
     for i, ind in enumerate(total_indices):
         style = "display:none" if i != 0 else ""

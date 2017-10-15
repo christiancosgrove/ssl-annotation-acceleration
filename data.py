@@ -95,14 +95,16 @@ class DataReader:
 
             for i,v in enumerate(self.image_list):
                 im = scipy.ndimage.imread(v.name)
-                if im.shape[0] > im.shape[1]:
-                    edge = (im.shape[0] - im.shape[1]) // 2
-                    im = im[edge:-edge,:,:]
-                elif im.shape[1] > im.shape[0]:
-                    edge = (im.shape[1] - im.shape[0]) // 2
-                    im = im[:, edge:-edge, :]
-                im = im / 127.5 - 1.0
-                self.images[i] = scipy.misc.imresize(im, (self.width, self.height)) 
+
+                if im.shape[0] != width or im.shape[1] != height:
+                    if im.shape[0] > im.shape[1]:
+                        edge = (im.shape[0] - im.shape[1]) // 2
+                        im = im[edge:-edge,:,:]
+                    elif im.shape[1] > im.shape[0]:
+                        edge = (im.shape[1] - im.shape[0]) // 2
+                        im = im[:, edge:-edge, :]
+                    im = scipy.misc.imresize(im, (self.width, self.height)) 
+                self.images[i] = im / 127.5 - 1.0
                 
                 if 100 * i // len(self.image_list) != percent:
                     percent = 100 * i // len(self.image_list)
@@ -232,8 +234,10 @@ class DataReader:
     def autolabel(self, ssl_model, threshold): # where threshold is a confidence threshold, above which an image is automatically positive
         confidences = np.empty((0,len(self.class_list)))
         
+        print("autolabeling")
         for i in range(len(self.image_list) // ssl_model.mb_size):
             confidences = np.append(confidences, ssl_model.predict(self.images[i * ssl_model.mb_size : (i + 1) * ssl_model.mb_size]), axis=0)
+        print("got confidences")
 
         count = 0
 
