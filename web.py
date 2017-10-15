@@ -33,6 +33,9 @@ def index():
 
     html += '<form id="form1" action="' + post_endpoint + '" method="post">'
     indices, names, predictions = reader.get_labeling_batch(num_images)
+    if indices is None:
+        return "No work right now..."
+
     html += '<input type="hidden" name="c" value="{}"></input>'.format(base64.urlsafe_b64encode(predictions).decode('ascii'))
     html += '<input type="hidden" name="s" value="{}"></input>'.format(base64.urlsafe_b64encode(indices).decode('ascii'))
 

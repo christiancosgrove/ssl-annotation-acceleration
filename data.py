@@ -144,8 +144,9 @@ class DataReader:
     def label_image_negative(self, index, category):
         self.image_list[index].labels[category] = -1
 
-
-    def get_labeling_batch(self, num_images):
+    #if groundtruth is true, "predictions" are groundtruth labels for the image
+    #groundtruth is used to verify the quality of a human labeler against those who have already been accepted
+    def get_labeling_batch(self, num_images, groundtruth=False): 
         indices = []
         names = []
 
@@ -153,7 +154,7 @@ class DataReader:
         i = 0
         while len(indices) < num_images:
             if i >= len(permutation):
-                return None
+                return None, None, None
 
             im = self.image_list[permutation[i]]
             cnum = np.argmax(im.labels)
@@ -222,9 +223,9 @@ class DataReader:
         total_labeled = 0
 
         for i in range(len(test_indices)):
-            print(confidences[i])
+            # print(confidences[i])
             c_pred = np.argmax(confidences[i], axis=0)
-            print(self.image_list[test_indices[i]].labels)
+            # print(self.image_list[test_indices[i]].labels)
             c_test = np.argmax(self.image_list[test_indices[i]].labels, axis=0)
             if c_pred == c_test:
                 correct_count+=1

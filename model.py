@@ -49,7 +49,7 @@ class SSLModel:
         
         #negative loss
         negative_logits = tf.gather(self.D_real_lab_neg, self.Y_neg, axis=-1)
-        # self.D_loss_lab+= tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=negative_logits, labels=tf.zeros_like(negative_logits)))
+        self.D_loss_lab+= tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=negative_logits, labels=tf.zeros_like(negative_logits)))
 
 
         # for i in range(self.classes):
