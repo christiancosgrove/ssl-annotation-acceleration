@@ -80,12 +80,12 @@ def submit():
             gt_count+=1
             if positives[i] == r:
                 gt_correct+=1
-
-        if r == 1:
-            print('positive label {}'.format(imgs[i]))
-            reader.label_image_positive(imgs[i], categories[i])
-        elif r == -1:
-            reader.label_image_negative(imgs[i], categories[i])
+        else:
+            if r == 1:
+                print('positive label {}'.format(imgs[i]))
+                reader.label_image_positive(imgs[i], categories[i])
+            elif r == -1:
+                reader.label_image_negative(imgs[i], categories[i])
 
     print("{}/{} correct".format(gt_correct, gt_count))
 

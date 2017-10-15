@@ -45,15 +45,18 @@ def main():
 			continue
 		else:
 
-			for i in range(chunk_size):
-				X_mb = chunk_unl[i * mb_size : (i+1) * mb_size]
-				X_lab_mb = chunk_lab[0][i * mb_size : (i+1) * mb_size]
-				Y_mb = chunk_lab[1][i * mb_size : (i+1) * mb_size]
-				X_neg_mb = chunk_neg[0][i * mb_size : (i+1) * mb_size] if chunk_neg is not None else X_lab_mb
-				Y_neg_mb = np.squeeze(chunk_neg[1][i * mb_size : (i+1) * mb_size]) if chunk_neg is not None else np.array([11] * mb_size, np.int64)
+			dloss = 0
+			gloss = 0
+			if chunk_neg is not None:
+				for i in range(chunk_size):
+					X_mb = chunk_unl[i * mb_size : (i+1) * mb_size]
+					X_lab_mb = chunk_lab[0][i * mb_size : (i+1) * mb_size]
+					Y_mb = chunk_lab[1][i * mb_size : (i+1) * mb_size]
+					X_neg_mb = chunk_neg[0][i * mb_size : (i+1) * mb_size] if chunk_neg is not None else X_lab_mb
+					Y_neg_mb = np.squeeze(chunk_neg[1][i * mb_size : (i+1) * mb_size]) if chunk_neg is not None else np.array([11] * mb_size, np.int64)
 
-				dloss, gloss = model.train_step(X_mb, X_lab_mb, Y_mb, X_neg_mb, Y_neg_mb)
-				print('.', end='', flush=True)
+					dloss, gloss = model.train_step(X_mb, X_lab_mb, Y_mb, X_neg_mb, Y_neg_mb)
+					print('.', end='', flush=True)
 
 			correct_count, total_labeled = reader.evaluate_model(model)
 

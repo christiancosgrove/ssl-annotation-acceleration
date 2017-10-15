@@ -157,7 +157,7 @@ class DataReader:
 
             im = self.image_list[permutation[i]]
             cnum = np.argmax(im.labels)
-            if im.labels[cnum] == 0 and np.amax(im.prediction) > 0.95: # TEMP
+            if im.labels[cnum] == 0:
                 indices.append(permutation[i])
                 if self.image_list[permutation[i]].url is not None:
                     names.append(self.image_list[permutation[i]].url)
@@ -227,14 +227,13 @@ class DataReader:
             self.image_list[i].prediction = conf
 
             m = np.argmax(conf, axis=0)
-            if conf[m] > threshold and np.max(self.image_list[i].labels) == 0:
+            c = np.argmax(self.image_list[i].labels)
+            if conf[m] > threshold and self.image_list[i].labels[c] == 0:
                 if self.image_list[i].labels[m] == 0:
                     self.image_list[i].labels[m] = 1
                     self.image_list[i].autolabeled = True
                     count += 1
-
-            c = np.argmax(self.image_list[i].labels)
-            if self.image_list[i].labels[c] == 1:
+            elif self.image_list[i].labels[c] == 1:
                 total_labeled+=1
                 if m == c:
                     correct_count+=1

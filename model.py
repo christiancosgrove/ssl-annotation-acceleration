@@ -48,7 +48,7 @@ class SSLModel:
         self.D_loss_lab = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.D_real_lab, labels=self.Y))
         
         #negative loss
-        negative_logits = tf.gather(self.D_real_lab_neg, self.Y_neg, axis=-1)
+        negative_logits = tf.gather(self.D_real_lab_neg, self.Y_neg, validate_indices=True, axis=-1)
         self.D_loss_lab+= tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=negative_logits, labels=tf.zeros_like(negative_logits)))
 
 
@@ -77,7 +77,7 @@ class SSLModel:
             self.G_solver = (opt.minimize(self.G_loss, var_list=theta_G))
 
         config = tf.ConfigProto()
-        config.gpu_options.allow_growth = True
+        config.gpu_options.allow_growth = False
         self.sess = tf.Session(config=config)
         self.sess.run(tf.global_variables_initializer())
         self.saver = tf.train.Saver()
