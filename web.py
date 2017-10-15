@@ -87,7 +87,7 @@ def submit():
             gt_count+=1
             if positives[i] == r:
                 gt_correct+=1
-    if gt_count >= groundtruth_threshold * gt_correct:
+    if gt_correct >= groundtruth_threshold * gt_count:
         for i, r in enumerate(responses):
             if positives[i] == 0:
                 if r == 1:

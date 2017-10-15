@@ -96,7 +96,7 @@ class DataReader:
             for i,v in enumerate(self.image_list):
                 im = scipy.ndimage.imread(v.name)
 
-                if im.shape[0] != width or im.shape[1] != height:
+                if im.shape[0] != self.width or im.shape[1] != self.height:
                     if im.shape[0] > im.shape[1]:
                         edge = (im.shape[0] - im.shape[1]) // 2
                         im = im[edge:-edge,:,:]
@@ -212,17 +212,25 @@ class DataReader:
 
             if im.labels[cnum] == 1:
                 indices.append(permutation[i])
-                predictions.append(cnum)
-                positives.append(1)
                 append_to_names(self, permutation[i], names)
-            else:
-                perm = np.random.permutation(im.labels.shape[0])
-                cnum = perm[np.argmin(im.labels[perm])]
-                if im.labels[cnum] == -1:
-                    indices.append(permutation[i])
+                #half will be negative ground truth labels
+                if np.random.uniform() < 0.5:
+                    neg_class = np.random.randint(len(im.labels))
+                    while neg_class == cnum:
+                        neg_class = np.random.randint(len(im.labels))
+                        predictions.append(neg_class)
+                        positives.append(-1)
+                else:
                     predictions.append(cnum)
-                    positives.append(-1)
-                    append_to_names(self, permutation[i], names)
+                    positives.append(1)
+            # else:
+            #     perm = np.random.permutation(im.labels.shape[0])
+            #     cnum = perm[np.argmin(im.labels[perm])]
+            #     if im.labels[cnum] == -1:
+            #         indices.append(permutation[i])
+            #         predictions.append(cnum)
+            #         positives.append(-1)
+            #         append_to_names(self, permutation[i], names)
             i+=1
 
         indices = np.array(indices)
