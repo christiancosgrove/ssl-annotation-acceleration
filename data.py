@@ -134,14 +134,17 @@ class DataReader:
                     permutation = np.random.permutation(len(self.image_list))
                     i = 0
                 else:
-                    return None
+                    if not positive:
+                        return self.minibatch_labeled_negative_from_positive(mb_size)
+                    else:
+                        return None
 
 
             im = self.image_list[permutation[i]]
             if not im.autolabeled and not im.test:
                 if positive:
                     cnum = np.argmax(im.labels)
-                    if im.labels[cnum] > 0:
+                    if im.labels[cnum] == 1:
                         indices.append(permutation[i])
                         labels.append(cnum)
                 else:
@@ -153,6 +156,37 @@ class DataReader:
 
 
         return np.array(self.images[indices]), np.array(labels)
+
+    def minibatch_labeled_negative_from_positive(self, mb_size):
+        indices = []
+        labels = []
+
+        permutation = np.random.permutation(len(self.image_list))
+        i = 0
+        while len(indices) < mb_size:
+            if i >= len(permutation):
+                if len(indices) > 0:
+                    permutation = np.random.permutation(len(self.image_list))
+                    i = 0
+                else:
+                    return None
+
+
+            im = self.image_list[permutation[i]]
+            if not im.autolabeled and not im.test:
+                cnum = np.argmax(im.labels)
+                if im.labels[cnum] == 1:
+                    neg_class = np.random.randint(len(im.labels))
+                    while neg_class == cnum:
+                        neg_class = np.random.randint(len(im.labels))
+
+                    indices.append(permutation[i])
+                    labels.append(neg_class)
+            i+=1
+
+
+        return np.array(self.images[indices]), np.array(labels)
+
 
     def label_image_positive(self, index, category):
         self.image_list[index].labels[category] = 1
@@ -218,8 +252,8 @@ class DataReader:
                     neg_class = np.random.randint(len(im.labels))
                     while neg_class == cnum:
                         neg_class = np.random.randint(len(im.labels))
-                        predictions.append(neg_class)
-                        positives.append(-1)
+                    predictions.append(neg_class)
+                    positives.append(-1)
                 else:
                     predictions.append(cnum)
                     positives.append(1)
