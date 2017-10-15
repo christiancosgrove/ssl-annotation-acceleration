@@ -9,6 +9,7 @@ import os
 import base64
 from model import SSLModel
 import pickle
+import csv
 
 class ImageInfo:
     def __init__(self, name, classes):
@@ -31,7 +32,6 @@ class ImageInfo:
         self.test = False 
 
         self.url = None
-import csv
 
 class DataReader:
     def __init__(self, directory, width, height, channels, class_list, cache=True, load_filename=None):
@@ -144,9 +144,8 @@ class DataReader:
     def label_image_negative(self, index, category):
         self.image_list[index].labels[category] = -1
 
-    #if groundtruth is true, "predictions" are groundtruth labels for the image
-    #groundtruth is used to verify the quality of a human labeler against those who have already been accepted
-    def get_labeling_batch(self, num_images, groundtruth=False): 
+
+    def get_labeling_batch(self, num_images):
         indices = []
         names = []
 
@@ -158,7 +157,7 @@ class DataReader:
 
             im = self.image_list[permutation[i]]
             cnum = np.argmax(im.labels)
-            if im.labels[cnum] == 0:
+            if im.labels[cnum] == 0 and np.amax(im.prediction) > 0.95: # TEMP
                 indices.append(permutation[i])
                 if self.image_list[permutation[i]].url is not None:
                     names.append(self.image_list[permutation[i]].url)
@@ -171,6 +170,48 @@ class DataReader:
         predictions = np.array([np.argmax(self.image_list[ind].prediction, axis=0) for ind in indices])
         return indices, names, predictions
 
+    def get_labeling_batch_groundtruth(self, num_images):
+        indices = []
+        names = []
+        positives = []
+        predictions = []
+
+        permutation = np.random.permutation(len(self.image_list))
+        i = 0
+        while len(indices) < num_images:
+            if i >= len(permutation):
+                return np.array([], dtype=np.int64), [], np.array([], dtype=np.int64), np.array([], dtype=np.int64)
+
+            im = self.image_list[permutation[i]]
+            cnum = np.argmax(im.labels)
+
+
+            def append_to_names(self, index, names):
+                if self.image_list[index].url is not None:
+                    names.append(self.image_list[index].url)
+                else:
+                    names.append(self.image_list[index].name)
+
+            if im.labels[cnum] == 1:
+                indices.append(permutation[i])
+                predictions.append(cnum)
+                positives.append(1)
+                append_to_names(self, permutation[i], names)
+            else:
+                perm = np.random.permutation(im.labels.shape[0])
+                cnum = perm[np.argmin(im.labels[perm])]
+                if im.labels[cnum] == -1:
+                    indices.append(permutation[i])
+                    predictions.append(cnum)
+                    positives.append(-1)
+                    append_to_names(self, permutation[i], names)
+            i+=1
+
+        indices = np.array(indices)
+        predictions = np.array(predictions)
+        positives = np.array(positives)
+        print(positives)
+        return indices, names, predictions, positives
 
     def autolabel(self, ssl_model, threshold): # where threshold is a confidence threshold, above which an image is automatically positive
         confidences = np.empty((0,len(self.class_list)))
@@ -207,7 +248,7 @@ class DataReader:
 
         # too few test indices!
         if len(test_indices) < ssl_model.mb_size:
-            return None
+            return None, None
 
         # in case test_indices is not the right length, include some wrap
         indices_modified = np.repeat(test_indices, 2)[:ssl_model.mb_size*int(np.ceil(len(test_indices) / ssl_model.mb_size))]
@@ -225,8 +266,12 @@ class DataReader:
         for i in range(len(test_indices)):
             # print(confidences[i])
             c_pred = np.argmax(confidences[i], axis=0)
+
             # print(self.image_list[test_indices[i]].labels)
             c_test = np.argmax(self.image_list[test_indices[i]].labels, axis=0)
+            if self.image_list[test_indices[i]].labels[c_test] != 1: # make sure we are evaluating on positive images only
+                continue
+
             if c_pred == c_test:
                 correct_count+=1
             total_labeled+=1

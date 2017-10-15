@@ -24,12 +24,12 @@ from numpy import genfromtxt
 class_list = [x.decode('ascii') for x in genfromtxt('classes.csv', delimiter=',', dtype=None)]
 
 ITERATIONS = 100000
+import os
 
 def main():
 	reader = DataReader(images_directory, width, width, channels, class_list)
 
 	Thread(target=lambda: start_server(reader)).start()
-	import os
 	os.makedirs('checkpoints', exist_ok=True)
 
 	model = SSLModel(width, width, channels, mb_size, len(class_list), 'checkpoints', load=args.LOAD)
@@ -57,14 +57,18 @@ def main():
 
 			correct_count, total_labeled = reader.evaluate_model(model)
 
-			print("{} correct, {} total from test set, {}% correct".format(correct_count, total_labeled, int(correct_count / total_labeled * 100)));
+			if correct_count is not None and total_labeled is not None:
+				print("{} correct, {} total from test set, {}% correct".format(correct_count, total_labeled, int(correct_count / total_labeled * 100)));
+			else:
+				print("Could not evaluate model")
 			if e % 5 == 0:
 				print(dloss, gloss)
-				fake = model.sample_fake()[0]
+				fake = model.sample_fake()
 				fake = fake * 0.5 + 0.5
+				fake = np.reshape(fake, (mb_size * width, width, channels))
 				scipy.misc.imsave('generated.png', fake)
 
-				reader.autolabel(model, 0.95)
+				reader.autolabel(model, 1.1)
 				model.save()
 
 if __name__ == '__main__':

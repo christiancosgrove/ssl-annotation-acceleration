@@ -17,6 +17,7 @@ function nextPage() {
     var dat = {
         'c':$('[name="c"]').val(),
         's':$('[name="s"]').val(),
+        'p':$('[name="p"]').val(),
         'assignmentId':aid,
         'workerId':$('[name="workerId"]').val(),
         'time': (new Date() - dnow),

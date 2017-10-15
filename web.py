@@ -15,6 +15,9 @@ reader = None
 
 num_images = 32
 
+num_images_groundtruth = 16
+
+
 USE_SANDBOX = True
 post_endpoint = 'https://workersandbox.mturk.com/mturk/externalSubmit' if USE_SANDBOX else 'https://www.mturk.com/mturk/externalSubmit'
 
@@ -33,41 +36,58 @@ def index():
 
     html += '<form id="form1" action="' + post_endpoint + '" method="post">'
     indices, names, predictions = reader.get_labeling_batch(num_images)
-    if indices is None:
+    gt_indices, gt_names, gt_predictions, gt_positives = reader.get_labeling_batch_groundtruth(num_images_groundtruth)
+    if indices is None or gt_indices is None:
         return "No work right now..."
 
-    html += '<input type="hidden" name="c" value="{}"></input>'.format(base64.urlsafe_b64encode(predictions).decode('ascii'))
-    html += '<input type="hidden" name="s" value="{}"></input>'.format(base64.urlsafe_b64encode(indices).decode('ascii'))
+    total_indices = np.append(indices, gt_indices)
+    total_names = names + gt_names
+    total_predictions = np.append(predictions, gt_predictions)
 
-    for i in range(num_images):
+    total_positives = np.append([0] * len(indices), gt_positives)
+
+    perm = np.random.permutation(len(total_indices))
+
+    html += '<input type="hidden" name="c" value="{}"></input>'.format(base64.urlsafe_b64encode(total_predictions[perm]).decode('ascii'))
+    html += '<input type="hidden" name="s" value="{}"></input>'.format(base64.urlsafe_b64encode(total_indices[perm]).decode('ascii'))
+    html += '<input type="hidden" name="p" value="{}"></input>'.format(base64.urlsafe_b64encode(total_positives[perm]).decode('ascii'))
+
+    for i, ind in enumerate(total_indices):
         style = "display:none" if i != 0 else ""
         iname = "i" + str(i)
-        html += '<div style="' + style + '"><span class="heading">Is this a <strong>' + reader.class_list[predictions[i]] + '</strong>?</span><br><input type="checkbox" id="{}" name="{}"><label for="{}"><img src="{}" /></label></div>'.format(iname, iname, iname, names[i])
+        html += '<div style="' + style + '"><span class="heading">Is this a <strong>' + \
+            reader.class_list[total_predictions[i]] + '</strong>?</span><br><input type="checkbox" id="{}" name="{}"><label for="{}"><img src="{}" /></label></div>'.format(iname, iname, iname, total_names[i])
     html += '<a class="nextbtn" href="#" onclick="nextItem(false)">No (shortcut <strong>N</strong>)</a>'
     html += '<a class="nextbtn" href="#" onclick="nextItem(true)">Yes (shortcut <strong>M</strong>)</a>'
     html += '<p>Say <strong>no</strong> for any <strong>vehicle interiors</strong>, or any case where <strong>the type of vehicle is unclear</strong>.</p>'
     html += '</form></body></html>'
     return html
 
-def handle_results():
-    print('hi')
-
-
 @app.route('/submit', methods=['POST'])
 def submit():
     arg = request.get_json(force=True)
-    imgs = np.fromstring(base64.urlsafe_b64decode(arg['s']), dtype=np.int32, count=num_images)
-    categories = np.fromstring(base64.urlsafe_b64decode(arg['c']), dtype=np.int32, count=num_images)
+    imgs = np.fromstring(base64.urlsafe_b64decode(arg['s']), dtype=np.int32, count=num_images+num_images_groundtruth)
+    categories = np.fromstring(base64.urlsafe_b64decode(arg['c']), dtype=np.int32, count=num_images+num_images_groundtruth)
+    positives = np.fromstring(base64.urlsafe_b64decode(arg['p']), dtype=np.int32, count=num_images+num_images_groundtruth)
     responses = np.array(arg['responses'])
 
     #todo: check if assignment was valid
+    gt_count = 0
+    gt_correct=0
 
     for i, r in enumerate(responses):
+        if positives[i] == 1 or positives[i] == -1:
+            gt_count+=1
+            if positives[i] == r:
+                gt_correct+=1
+
         if r == 1:
             print('positive label {}'.format(imgs[i]))
             reader.label_image_positive(imgs[i], categories[i])
         elif r == -1:
             reader.label_image_negative(imgs[i], categories[i])
+
+    print("{}/{} correct".format(gt_correct, gt_count))
 
     return 'done'
 
