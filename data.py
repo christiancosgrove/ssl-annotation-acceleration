@@ -228,7 +228,6 @@ class DataReader:
         indices = np.array(indices)
         predictions = np.array(predictions)
         positives = np.array(positives)
-        print(positives)
         return indices, names, predictions, positives
 
     def autolabel(self, ssl_model, threshold): # where threshold is a confidence threshold, above which an image is automatically positive
