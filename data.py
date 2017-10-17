@@ -31,10 +31,14 @@ class ImageInfo:
         #whether this image is currently in the test set
         self.test = False 
 
+        # FOR EVALUATION PURPOSES (used when evaluating current technique on CIFAR-10)
+        #the ground-truth label of the image
+        self.ground_truth = None
+
         self.url = None
 
 class DataReader:
-    def __init__(self, directory, width, height, channels, class_list, cache=True, load_filename=None):
+    def __init__(self, directory, width, height, channels, class_list, cache=True, load_filename=None, evaluating=False):
         self.image_list = []
         self.width = width
         self.height=height
@@ -59,14 +63,23 @@ class DataReader:
 
             for i, filename in enumerate(glob.glob('images/*')):
                 info = ImageInfo(filename, len(self.class_list))
+
+
+                for j, cname in enumerate(class_list):
+                    if re.match('\d+_' + cname, os.path.basename(filename)) is not None:
+                        info.ground_truth = j
+
                 #FOR DEBUGGING PURPOSES: set initial labels based on filenames
                 if np.random.uniform() < 0.5:
-                    for j, cname in enumerate(class_list):
-                        if os.path.basename(filename).startswith(cname):
-                            info.labels[j] = 1
+                    info.labels[info.ground_truth] = 1
+                    
+                    # for j, cname in enumerate(class_list):
 
-                            if np.random.uniform() < 0.5:
-                                info.test = True
+                        # if os.path.basename(filename).startswith(cname):
+                        #     info.labels[j] = 1
+
+                        #     if np.random.uniform() < 0.5:
+                        #         info.test = True
 
 
                 if urls.get(filename) is not None:
@@ -197,6 +210,11 @@ class DataReader:
         self.image_list[index].labels[category] = -1
 
 
+    def append_to_names(self, index, names):
+        if self.image_list[index].url is not None:
+            names.append(self.image_list[index].url)
+        else:
+            names.append(self.image_list[index].name)
     def get_labeling_batch(self, num_images):
         indices = []
         names = []
@@ -211,10 +229,7 @@ class DataReader:
             cnum = np.argmax(im.labels)
             if im.labels[cnum] == 0:
                 indices.append(permutation[i])
-                if self.image_list[permutation[i]].url is not None:
-                    names.append(self.image_list[permutation[i]].url)
-                else:
-                    names.append(self.image_list[permutation[i]].name)
+                self.append_to_names(permutation[i], names)
 
             i+=1
 
@@ -238,15 +253,10 @@ class DataReader:
             cnum = np.argmax(im.labels)
 
 
-            def append_to_names(self, index, names):
-                if self.image_list[index].url is not None:
-                    names.append(self.image_list[index].url)
-                else:
-                    names.append(self.image_list[index].name)
 
             if im.labels[cnum] == 1:
                 indices.append(permutation[i])
-                append_to_names(self, permutation[i], names)
+                self.append_to_names(permutation[i], names)
                 #half will be negative ground truth labels
                 if np.random.uniform() < 0.5:
                     neg_class = np.random.randint(len(im.labels))
@@ -332,9 +342,10 @@ class DataReader:
             if self.image_list[test_indices[i]].labels[c_test] != 1: # make sure we are evaluating on positive images only
                 continue
 
-            if c_pred == c_test:
-                correct_count+=1
-            total_labeled+=1
+            if confidences[i][c_pred] > 0.95:
+                if c_pred == c_test:
+                    correct_count+=1
+                total_labeled+=1
 
         return (correct_count, total_labeled)
 
