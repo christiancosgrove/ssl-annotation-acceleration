@@ -10,6 +10,7 @@ import base64
 from model import SSLModel
 import pickle
 import csv
+import re
 
 class ImageInfo:
     def __init__(self, name, classes):
@@ -55,24 +56,34 @@ class DataReader:
                     for row in reader:
                         try:
                             fname, url = row
-                            urls[os.path.join('images', fname)] = row[1]
+                            urls[os.path.join(directory, fname)] = row[1]
                         except: 
                             pass
             except Exception as e:
                 pass
 
-            for i, filename in enumerate(glob.glob('images/*')):
+            for i, filename in enumerate(glob.glob(directory +'/*')):
                 info = ImageInfo(filename, len(self.class_list))
 
 
                 for j, cname in enumerate(class_list):
                     if re.match('\d+_' + cname, os.path.basename(filename)) is not None:
                         info.ground_truth = j
+                        if re.match(r'.*test.*', filename) is not None:
+                            info.labels[info.ground_truth] = 1
+                            info.test = True
 
-                #FOR DEBUGGING PURPOSES: set initial labels based on filenames
-                if np.random.uniform() < 0.5:
-                    info.labels[info.ground_truth] = 1
-                    
+                if urls.get(filename) is not None:
+                    info.url = urls[filename]
+                self.image_list.append(info)
+
+            indices = np.random.permutation(len(self.image_list))
+            i = 0
+            while i < 4000:
+                if not self.image_list[indices[i]].test:
+                    self.image_list[indices[i]].labels[self.image_list[indices[i]].ground_truth] = 1
+                i += 1
+
                     # for j, cname in enumerate(class_list):
 
                         # if os.path.basename(filename).startswith(cname):
@@ -82,9 +93,6 @@ class DataReader:
                         #         info.test = True
 
 
-                if urls.get(filename) is not None:
-                    info.url = urls[filename]
-                self.image_list.append(info)
 
         self.load('./cache',cache)
 
@@ -313,7 +321,8 @@ class DataReader:
         print("{:.3f} training accuracy".format(correct_count / total_labeled))
 
     #returns a test accuracy on the current test set of the model
-    def evaluate_model(self, ssl_model):
+    #threshold is the confidence above which accuracy is evaluated
+    def evaluate_model(self, ssl_model, threshold=0.0):
         test_indices = [i for i, im in enumerate(self.image_list) if im.test]
 
         # too few test indices!
@@ -342,7 +351,7 @@ class DataReader:
             if self.image_list[test_indices[i]].labels[c_test] != 1: # make sure we are evaluating on positive images only
                 continue
 
-            if confidences[i][c_pred] > 0.95:
+            if confidences[i][c_pred] > threshold:
                 if c_pred == c_test:
                     correct_count+=1
                 total_labeled+=1

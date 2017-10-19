@@ -61,7 +61,11 @@ def main():
 			correct_count, total_labeled = reader.evaluate_model(model)
 
 			if correct_count is not None and total_labeled is not None:
-				print("{} correct, {} total from test set, {}% correct".format(correct_count, total_labeled, int(correct_count / total_labeled * 100)));
+				if total_labeled != 0:
+					percent = int(correct_count / total_labeled * 100)
+				else:
+					percent = 0
+				print("{} correct, {} total from test set, {}% correct".format(correct_count, total_labeled, percent));
 			else:
 				print("Could not evaluate model")
 			if e % 5 == 0:
