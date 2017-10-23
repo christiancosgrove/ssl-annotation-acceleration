@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 class SSLModel:
-    def __init__(self, width, height, channels, mb_size, classes, checkpoint_dir, z_dim=100, learning_rate=3e-4, beta=0.5, load=False):
+    def __init__(self, width, height, channels, mb_size, classes, checkpoint_dir, z_dim=100, learning_rate=3e-4, beta=0.5, load=False, use_generator=True):
         self.width = width
         self.height = height
         self.channels = channels
@@ -12,6 +12,7 @@ class SSLModel:
         self.z_dim = z_dim
         self.learning_rate = learning_rate
         self.beta = beta
+        self.use_generator = use_generator
 
         self.X = tf.placeholder(tf.float32, shape=[mb_size, width, height, channels])
         self.X_lab = tf.placeholder(tf.float32, shape=[mb_size, width, height, channels])
@@ -56,7 +57,9 @@ class SSLModel:
         #     class_logit = tf.squeeze(tf.slice(self.D_real_lab, [0,i],[-1,1]))
         #     self.D_loss_lab.append(tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=class_logit, labels=self.Y)))
         # self.D_loss = [self.D_loss_unl + x for x in self.D_loss_lab]
-        self.D_loss = self.D_loss_unl + self.D_loss_lab
+        self.D_loss = self.D_loss_lab
+        if self.use_generator:
+            self.D_loss += self.D_loss_unl
         self.G_loss = tf.reduce_mean(tf.square(tf.reduce_mean(self.D_real_feat, axis=0)-tf.reduce_mean(self.D_fake_feat, axis=0)))
 
         #pull-away term - increases entropy of generated images (measured by discriminator features)
@@ -129,9 +132,10 @@ class SSLModel:
                     self.training_now:True
                 })
 
-        _, G_loss_curr = self.sess.run(
-            [self.G_solver, self.G_loss], feed_dict={self.X: X_mb, self.z: z_mb, self.X_lab: X_lab_mb, self.Y: Y_mb, self.training_now:True}
-        )
+        if self.use_generator:
+            _, G_loss_curr = self.sess.run(
+                [self.G_solver, self.G_loss], feed_dict={self.X: X_mb, self.z: z_mb, self.X_lab: X_lab_mb, self.Y: Y_mb, self.training_now:True}
+            )
 
         self.global_step += 1
 

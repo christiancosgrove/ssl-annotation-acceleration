@@ -11,6 +11,7 @@ import scipy.misc
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--load', dest='LOAD', action='store_true')
+parser.add_argument('--supervised', dest='SUPERVISED', action='store_true')
 args = parser.parse_args()
 
 mb_size = 32
@@ -32,7 +33,7 @@ def main():
 	Thread(target=lambda: start_server(reader)).start()
 	os.makedirs('checkpoints', exist_ok=True)
 
-	model = SSLModel(width, width, channels, mb_size, len(class_list), 'checkpoints', load=args.LOAD)
+	model = SSLModel(width, width, channels, mb_size, len(class_list), 'checkpoints', load=args.LOAD, use_generator=not SUPERVISED)
 
 	for e in range(ITERATIONS):
 
