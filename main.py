@@ -35,7 +35,7 @@ def main():
 		Thread(target=lambda: start_server(reader)).start()
 	os.makedirs('checkpoints', exist_ok=True)
 
-	model = SSLModel(width, width, channels, mb_size, len(class_list), 'checkpoints', load=args.LOAD, use_generator=not SUPERVISED)
+	model = SSLModel(width, width, channels, mb_size, len(class_list), 'checkpoints', load=args.LOAD, use_generator=not args.SUPERVISED)
 
 	for e in range(ITERATIONS):
 
