@@ -131,7 +131,7 @@ class SSLModel:
                     self.Y_neg: Y_neg_mb,
                     self.training_now:True
                 })
-
+        G_loss_curr = 0
         if self.use_generator:
             _, G_loss_curr = self.sess.run(
                 [self.G_solver, self.G_loss], feed_dict={self.X: X_mb, self.z: z_mb, self.X_lab: X_lab_mb, self.Y: Y_mb, self.training_now:True}
