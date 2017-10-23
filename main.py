@@ -23,7 +23,7 @@ chunk_size = 100
 from numpy import genfromtxt
 class_list = [x.decode('ascii') for x in genfromtxt('classes.csv', delimiter=',', dtype=None)]
 
-ITERATIONS = 100000
+ITERATIONS = 2000
 import os
 
 def main():
@@ -65,7 +65,7 @@ def main():
 					percent = int(correct_count / total_labeled * 100)
 				else:
 					percent = 0
-				print("{} correct, {} total from test set, {}% correct".format(correct_count, total_labeled, percent));
+				print("epoch {}, {} correct, {} total from test set, {}% correct".format(e, correct_count, total_labeled, percent));
 			else:
 				print("Could not evaluate model")
 			if e % 5 == 0:
