@@ -80,7 +80,7 @@ class SSLModel:
             self.G_solver = (opt.minimize(self.G_loss, var_list=theta_G))
 
         config = tf.ConfigProto()
-        config.gpu_options.allow_growth = False
+        config.gpu_options.allow_growth = True
         self.sess = tf.Session(config=config)
         self.sess.run(tf.global_variables_initializer())
         self.saver = tf.train.Saver()
