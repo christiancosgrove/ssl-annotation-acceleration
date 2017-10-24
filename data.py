@@ -82,7 +82,7 @@ class DataReader:
             while i < 4000:
                 if not self.image_list[indices[i]].test:
                     if np.random.uniform() < corruption:
-                        self.image_list[np.random.randint(len(class_list))] = 1
+                        self.image_list[indices[i]].labels[np.random.randint(len(class_list))] = 1
                     else:
                         self.image_list[indices[i]].labels[self.image_list[indices[i]].ground_truth] = 1
                 i += 1
