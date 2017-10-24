@@ -14,6 +14,7 @@ parser.add_argument('--load', dest='LOAD', action='store_true')
 parser.add_argument('--supervised', dest='SUPERVISED', action='store_true')
 parser.add_argument('--web', dest='WEB', action='store_true')
 parser.add_argument('--checkpoint_dir', dest='CHECKPOINT_DIR', nargs='?', const='checkpoints')
+parser.add_argument('--corruption', dest='CORRUPTION')
 args = parser.parse_args()
 
 mb_size = 32
@@ -36,7 +37,7 @@ def main():
 		Thread(target=lambda: start_server(reader)).start()
 	os.makedirs(args.CHECKPOINT_DIR, exist_ok=True)
 
-	model = SSLModel(width, width, channels, mb_size, len(class_list), args.CHECKPOINT_DIR, load=args.LOAD, use_generator=not args.SUPERVISED)
+	model = SSLModel(width, width, channels, mb_size, len(class_list), args.CHECKPOINT_DIR, load=args.LOAD, use_generator=not args.SUPERVISED, corruption=args.CORRUPTION)
 
 	for e in range(ITERATIONS):
 

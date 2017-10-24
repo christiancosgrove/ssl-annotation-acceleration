@@ -39,7 +39,7 @@ class ImageInfo:
         self.url = None
 
 class DataReader:
-    def __init__(self, directory, width, height, channels, class_list, cache=True, load_filename=None, evaluating=False):
+    def __init__(self, directory, width, height, channels, class_list, cache=True, load_filename=None, evaluating=False, corruption=0.0):
         self.image_list = []
         self.width = width
         self.height=height
@@ -81,7 +81,10 @@ class DataReader:
             i = 0
             while i < 4000:
                 if not self.image_list[indices[i]].test:
-                    self.image_list[indices[i]].labels[self.image_list[indices[i]].ground_truth] = 1
+                    if np.random.uniform() < corruption:
+                        self.image_list[np.random.randint(len(class_list))] = 1
+                    else:
+                        self.image_list[indices[i]].labels[self.image_list[indices[i]].ground_truth] = 1
                 i += 1
 
                     # for j, cname in enumerate(class_list):
