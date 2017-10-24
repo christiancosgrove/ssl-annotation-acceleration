@@ -77,6 +77,7 @@ class DataReader:
                     info.url = urls[filename]
                 self.image_list.append(info)
 
+            np.random.seed(0)
             indices = np.random.permutation(len(self.image_list))
             i = 0
             while i < 4000:
