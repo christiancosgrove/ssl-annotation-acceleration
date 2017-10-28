@@ -86,7 +86,10 @@ class SSLModel:
         self.saver = tf.train.Saver()
 
         if load:
-            self.saver.restore(self.sess, tf.train.latest_checkpoint(checkpoint_dir=self.checkpoint_dir,latest_filename='checkpoint'))
+            self.load(self.checkpoint_dir)
+
+    def load(self,dir):
+        self.saver.restore(self.sess, tf.train.latest_checkpoint(checkpoint_dir=dir,latest_filename='checkpoint'))
 
     def G(self, z):
         with tf.variable_scope('G_'):
