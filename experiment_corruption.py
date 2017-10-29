@@ -26,16 +26,21 @@ import os
 def main():
 	reader = DataReader(images_directory, width, width, channels, class_list)
 	evals = []
-	model = SSLModel(width, width, channels, mb_size, len(class_list), "tmp", load=False)
+	model = SSLModel(width, width, channels, mb_size, len(class_list), "checkpoints_4000_supervised", load=True)
 
+
+	correct, total = reader.evaluate_model(model)
+	base_performance = correct/total
+
+	evals.append((0, correct / total / base_performance, correct/total))
 	corruptions = [5,10,15,20,30,50]
 	for corruption in corruptions:
-		model.load('checkpoints_unsupervised_corr_{:02d}'.format(corruption))
+		model.load('checkpoints_supervised_corr_{:02d}'.format(corruption))
 
 		correct,total = reader.evaluate_model(model)
-		evals.append((corruption, correct/total))
+		evals.append((corruption, correct / total / base_performance, correct/total))
 
-	np.savetxt('perf_corruption.csv', np.array(evals), delimiter=',')
+	np.savetxt('perf_corruption_supervised.csv', np.array(evals), delimiter=',')
 
 if __name__ == '__main__':
 	main()
