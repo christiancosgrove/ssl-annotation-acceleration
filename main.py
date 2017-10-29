@@ -15,6 +15,7 @@ parser.add_argument('--supervised', dest='SUPERVISED', action='store_true')
 parser.add_argument('--web', dest='WEB', action='store_true')
 parser.add_argument('--checkpoint_dir', dest='CHECKPOINT_DIR', nargs='?', const='checkpoints')
 parser.add_argument('--corruption', dest='CORRUPTION', default=1, type=float)
+parser.add_argument('--no_train', dest='NO_TRAIN', action='store_true')
 args = parser.parse_args()
 
 mb_size = 32
@@ -52,7 +53,7 @@ def main():
 
 			dloss = 0
 			gloss = 0
-			if chunk_neg is not None:
+			if chunk_neg is not None and not args.NO_TRAIN:
 				for i in range(chunk_size):
 					X_mb = chunk_unl[i * mb_size : (i+1) * mb_size]
 					X_lab_mb = chunk_lab[0][i * mb_size : (i+1) * mb_size]

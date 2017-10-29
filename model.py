@@ -27,9 +27,11 @@ class SSLModel:
         self.global_step = 0
 
         self.checkpoint_dir = checkpoint_dir
-        self.build(load) 
+        self.build() 
+        if load:
+            self.load(self.checkpoint_dir)
 
-    def build(self, load):
+    def build(self):
         
         self.X_fake = self.G(self.z)
         self.D_real, self.D_real_feat = self.D(self.X)
@@ -84,9 +86,6 @@ class SSLModel:
         self.sess = tf.Session(config=config)
         self.sess.run(tf.global_variables_initializer())
         self.saver = tf.train.Saver()
-
-        if load:
-            self.load(self.checkpoint_dir)
 
     def load(self,dir):
         self.saver.restore(self.sess, tf.train.latest_checkpoint(checkpoint_dir=dir,latest_filename='checkpoint'))
@@ -149,6 +148,9 @@ class SSLModel:
 
     def predict(self, X): #get class probabilities for a minibatch of images
         return self.sess.run(self.class_probabilities, feed_dict={self.X: X, self.training_now:False})
+
+    def features_predict(self, X): #get features and class probabilities for a minibatch of images
+        return self.sess.run([self.D_real_feat, self.class_probabilities], feed_dict={self.X: X, self.training_now:False})
 
     def sample_fake(self):
         return self.sess.run(self.X_fake, feed_dict={self.z: self.sample_z(), self.training_now:False})

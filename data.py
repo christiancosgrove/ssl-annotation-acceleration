@@ -12,9 +12,8 @@ import pickle
 import csv
 import re
 
-import scipy.cluster.hierarchy as hac
-import matplotlib.pyplot as plt
-from scipy import cluster
+from sklearn.cluster import MiniBatchKMeans
+from sklearn.cluster import AgglomerativeClustering
 
 CLUSTER_DEPTH = 8
 
@@ -303,20 +302,49 @@ class DataReader:
         positives = np.array(positives)
         return indices, names, predictions, positives
 
-    def autolabel(self, ssl_model, threshold): # where threshold is a confidence threshold, above which an image is automatically positive
-        confidences = np.empty((0,len(self.class_list)))
+    def autolabel(self, ssl_model, threshold, use_clustering=True): # where threshold is a confidence threshold, above which an image is automatically positive
+        confidences = np.empty((len(self.image_list),len(self.class_list)))
         features = None
 
         print("autolabeling")
         for i in range(len(self.image_list) // ssl_model.mb_size):
-            confidences = np.append(confidences, ssl_model.predict(self.images[i * ssl_model.mb_size : (i + 1) * ssl_model.mb_size]), axis=0)
+
+            #get features and class confidences for every image in training set
+            mb_features, mb_confidences = ssl_model.features_predict(self.images[i * ssl_model.mb_size : (i + 1) * ssl_model.mb_size])
+
+            confidences[i * ssl_model.mb_size : (i + 1) * ssl_model.mb_size] = mb_confidences
             
-            #also get features for clustering
-            mb_features = ssl_model.features(self.images[i * ssl_model.mb_size : (i + 1) * ssl_model.mb_size])
-            if features is None:
-                features = np.empty((0,len(self.class_list),mb_features.shape[1]))
-            features = np.append(features, mb_features)
+            if features is None and use_clustering:
+                features = np.empty((len(self.image_list),mb_features.shape[1]))
+            features[i * ssl_model.mb_size : (i + 1) * ssl_model.mb_size] = mb_features
         print("got confidences")
+
+        if features is not None:
+            n_clusters=50 #number of k-means clusters per class
+            labels = MiniBatchKMeans(n_clusters=n_clusters, max_iter=10, verbose=True).fit_predict(features.astype(np.float64))
+            labels = np.c_[np.arange(len(labels)),np.array(labels)]
+            print('clustering class ')
+            for c in range(len(self.class_list)):
+                print('{} '.format(c), end='', flush=True)
+                for l_index in range(n_clusters):
+
+                    group = np.array([x for x in labels if x[1] == l_index and np.argmax(confidences[x[0]])==c])
+                    if group.shape[0] <= 1:
+                        continue
+                    # perform hierarchical agglomerative clustering on each k-means cluster
+                    # this agglomerative clustering implementation is memory hungry, thus we must split up the training set
+
+                    agg_labels = []
+
+                    n_agg_clusters = min(2**(CLUSTER_DEPTH), group.shape[0]) #make sure we don't use too many clusters - clamp to number of samples
+                    agg = AgglomerativeClustering(n_clusters=n_agg_clusters)
+                    for i in range(CLUSTER_DEPTH):
+                        n_agg_clusters = min(2**(i+1), group.shape[0])
+                        agg.set_params(n_clusters=n_agg_clusters)
+                        agg_labels.append(agg.fit_predict(features[group[:,0]]))
+                    agg_labels = np.array(agg_labels)
+                    for i, x in enumerate(group):
+                        self.image_list[x[0]].clusters = np.concatenate([[c, x[1]], agg_labels[:,i]])
 
         count = 0
 
@@ -332,7 +360,7 @@ class DataReader:
                     self.image_list[i].labels[m] = 1
                     self.image_list[i].autolabeled = True
                     count += 1
-            elif self.image_list[i].labels[c] == 1:
+            if self.image_list[i].labels[c] == 1:
                 total_labeled+=1
                 if m == c:
                     correct_count+=1
@@ -351,13 +379,11 @@ class DataReader:
 
         # in case test_indices is not the right length, include some wrap
         indices_modified = np.tile(test_indices, 2)[:ssl_model.mb_size*int(np.ceil(len(test_indices) / ssl_model.mb_size))]
-        confidences = np.empty((0,len(self.class_list)))
+        confidences = np.empty((len(indices_modified),len(self.class_list)))
 
         for i in range(len(indices_modified) // ssl_model.mb_size):
-            confidences = np.append(
-                confidences,
-                ssl_model.predict(self.images[
-                    indices_modified[i * ssl_model.mb_size : (i + 1) * ssl_model.mb_size]]), axis=0)
+            confidences[i * ssl_model.mb_size : (i + 1) * ssl_model.mb_size] = ssl_model.predict(self.images[
+                    indices_modified[i * ssl_model.mb_size : (i + 1) * ssl_model.mb_size]])
 
         correct_count = 0
         total_labeled = 0
