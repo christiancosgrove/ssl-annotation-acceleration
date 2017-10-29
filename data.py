@@ -12,6 +12,12 @@ import pickle
 import csv
 import re
 
+import scipy.cluster.hierarchy as hac
+import matplotlib.pyplot as plt
+from scipy import cluster
+
+CLUSTER_DEPTH = 8
+
 class ImageInfo:
     def __init__(self, name, classes):
         #filename
@@ -29,6 +35,9 @@ class ImageInfo:
 
         #current classifier confidences for this image
         self.prediction = np.array([0] * classes)
+
+        self.clusters = np.array([0] * CLUSTER_DEPTH)
+
         #whether this image is currently in the test set
         self.test = False 
 
@@ -296,10 +305,17 @@ class DataReader:
 
     def autolabel(self, ssl_model, threshold): # where threshold is a confidence threshold, above which an image is automatically positive
         confidences = np.empty((0,len(self.class_list)))
-        
+        features = None
+
         print("autolabeling")
         for i in range(len(self.image_list) // ssl_model.mb_size):
             confidences = np.append(confidences, ssl_model.predict(self.images[i * ssl_model.mb_size : (i + 1) * ssl_model.mb_size]), axis=0)
+            
+            #also get features for clustering
+            mb_features = ssl_model.features(self.images[i * ssl_model.mb_size : (i + 1) * ssl_model.mb_size])
+            if features is None:
+                features = np.empty((0,len(self.class_list),mb_features.shape[1]))
+            features = np.append(features, mb_features)
         print("got confidences")
 
         count = 0
