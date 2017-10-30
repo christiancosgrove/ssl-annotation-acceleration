@@ -35,7 +35,7 @@ class ImageInfo:
         #current classifier confidences for this image
         self.prediction = np.array([0] * classes)
 
-        self.clusters = np.array([0] * CLUSTER_DEPTH)
+        self.clusters = None
 
         #whether this image is currently in the test set
         self.test = False 
