@@ -321,7 +321,7 @@ class DataReader:
 
         if features is not None:
             n_clusters=50 #number of k-means clusters per class
-            labels = MiniBatchKMeans(n_clusters=n_clusters, max_iter=10, verbose=True).fit_predict(features.astype(np.float64))
+            labels = MiniBatchKMeans(n_clusters=n_clusters, max_iter=10).fit_predict(features.astype(np.float64))
             labels = np.c_[np.arange(len(labels)),np.array(labels)]
             print('clustering class ')
             for c in range(len(self.class_list)):
@@ -345,7 +345,7 @@ class DataReader:
                     agg_labels = np.array(agg_labels)
                     for i, x in enumerate(group):
                         self.image_list[x[0]].clusters = np.concatenate([[c, x[1]], agg_labels[:,i]])
-
+            print('')
         count = 0
 
         correct_count = 0

@@ -28,7 +28,7 @@ def main():
 
 	os.makedirs(args.CHECKPOINT_DIR, exist_ok=True)
 
-	model = SSLModel(width, width, channels, mb_size, len(class_list), args.CHECKPOINT_DIR, load=args.LOAD)
+	model = SSLModel(width, width, channels, mb_size, len(class_list), args.CHECKPOINT_DIR, load=args.LOAD, use_generator=False)
 
 	thresholds = np.arange(0.0,1.0,0.01);
 	evals = []

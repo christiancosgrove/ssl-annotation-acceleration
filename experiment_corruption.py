@@ -26,11 +26,13 @@ import os
 def main():
 	reader = DataReader(images_directory, width, width, channels, class_list)
 	evals = []
-	model = SSLModel(width, width, channels, mb_size, len(class_list), "checkpoints_4000_supervised", load=True)
+	model = SSLModel(width, width, channels, mb_size, len(class_list), "checkpoints_4000_unsupervised", load=True, use_generator=True)
 
 
 	correct, total = reader.evaluate_model(model)
 	base_performance = correct/total
+
+	print("base performance: {}".format(base_performance))
 
 	evals.append((0, correct / total / base_performance, correct/total))
 	corruptions = [5,10,15,20,30,50]
