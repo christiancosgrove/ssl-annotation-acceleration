@@ -257,6 +257,32 @@ class DataReader:
         predictions = np.array([np.argmax(self.image_list[ind].prediction, axis=0) for ind in indices])
         return indices, names, predictions
 
+    def get_labeling_batch_clustered(self, num_images):
+        #select a random class from which to select images
+        c = np.randint(len(self.class_list))
+
+        depth = 0
+        selected_clusters = []
+        candidates = [(i, im) for (i, im) in enumerate(self.image_list) if im.clusters[0] == c and im.labels[c] == 0]
+        while True:
+            if self.image_list[0].clusters == None or depth >= len(self.image_list[0].clusters):
+                break
+            selected_cluster = np.randint(2 ** (depth + 1))
+            next_candidates = [(i, im) for (i, im) in candidates if im.clusters[depth] == selected_cluster]
+
+            if len(next_candidates) < num_images:
+                break
+            candidates = next_candidates
+            depth += 1
+
+        candidates = candidates[np.permutation(len(candidates))][:num_images]
+        indices = np.array([i for (i, im) in candidates])
+        predictions = np.array([c] * len(candidates))
+        names = [im.name for (i, im) in candidates]
+        clusters = [im.clusters for (i, im) in candidates]
+        return indices, names, predictions, clusters
+
+
     def get_labeling_batch_groundtruth(self, num_images):
         indices = []
         names = []
@@ -271,8 +297,6 @@ class DataReader:
 
             im = self.image_list[permutation[i]]
             cnum = np.argmax(im.labels)
-
-
 
             if im.labels[cnum] == 1:
                 indices.append(permutation[i])

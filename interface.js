@@ -11,6 +11,11 @@ function getParameterByName(name, url) {
     return decodeURIComponent(results[2].replace(/\+/g, " "));
 }
 
+
+function check() {
+    
+}
+
 function nextPage() {
     
     var aid=$('[name="assignmentId"]').val()
