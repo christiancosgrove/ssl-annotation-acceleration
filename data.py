@@ -145,10 +145,12 @@ class DataReader:
 
 
     def save_image_list(self, filename):
-        pickle.dump(self.image_list, open(filename, "wb"))
+        with open(filename, 'wb') as file:
+            pickle.dump(self.image_list, file)
 
     def load_image_list(self, filename):
-        self.image_list = pickle.load(open(filename, "wb"))
+        with open(filename, 'rb') as file:
+            self.image_list = pickle.load(file)
 
     def minibatch_unlabeled(self, mb_size):
         permutation = np.random.permutation(len(self.image_list))
@@ -257,30 +259,70 @@ class DataReader:
         predictions = np.array([np.argmax(self.image_list[ind].prediction, axis=0) for ind in indices])
         return indices, names, predictions
 
-    def get_labeling_batch_clustered(self, num_images):
+    def get_labeling_batch_clustered(self, num_images, num_images_groundtruth):
+        # in order to get a labeling batch, we must have called autolabel at least once - assigns classifier-derived clustering to each image in dataset
+        if self.image_list[0].clusters is None: 
+            return None, None, None, None, None
         #select a random class from which to select images
-        c = np.randint(len(self.class_list))
+        c = np.random.randint(len(self.class_list))
 
-        depth = 0
+        depth = 1
         selected_clusters = []
-        candidates = [(i, im) for (i, im) in enumerate(self.image_list) if im.clusters[0] == c and im.labels[c] == 0]
+        candidates = [(i, im) for (i, im) in enumerate(self.image_list) if im.clusters is not None and im.labels is not None and im.clusters[0] == c and np.argmax(im.prediction) == c]
         while True:
-            if self.image_list[0].clusters == None or depth >= len(self.image_list[0].clusters):
+            if self.image_list[0].clusters is None or depth >= len(self.image_list[0].clusters):
                 break
-            selected_cluster = np.randint(2 ** (depth + 1))
+            selected_cluster = np.random.randint(2 ** depth)
             next_candidates = [(i, im) for (i, im) in candidates if im.clusters[depth] == selected_cluster]
 
             if len(next_candidates) < num_images:
                 break
             candidates = next_candidates
             depth += 1
-
-        candidates = candidates[np.permutation(len(candidates))][:num_images]
-        indices = np.array([i for (i, im) in candidates])
-        predictions = np.array([c] * len(candidates))
+        candidates = candidates[:num_images]
+        indices = np.array([i for (i, im) in candidates], dtype=np.int64)
+        predictions = np.array([c] * len(candidates), dtype=np.int64)
         names = [im.name for (i, im) in candidates]
-        clusters = [im.clusters for (i, im) in candidates]
-        return indices, names, predictions, clusters
+        clusters = np.array([im.clusters for (i, im) in candidates], dtype=np.int64)
+
+        # get ground-truth images - used to evaluate performance of annotators
+        # 50% are positive, 50% are negative
+
+        num_positive_groundtruth = num_images_groundtruth // 2
+        num_negative_groundtruth = num_images_groundtruth - num_positive_groundtruth
+
+        candidates_positive = [(i, im) for (i, im) in enumerate(self.image_list) if im.clusters is not None and im.labels[c] == 1]
+        candidates_positive = [candidates_positive[i] for i in np.random.permutation(min(num_positive_groundtruth, len(candidates_positive)))]
+        indices_positive = np.array([i for (i, im) in candidates_positive], dtype=np.int64)
+        predictions_positive = np.array([c] * len(candidates_positive), dtype=np.int64)
+        names_positive = [im.name for (i, im) in candidates_positive]
+        clusters_positive = np.array([im.clusters for (i, im) in candidates_positive], dtype=np.int64)
+
+        indices_negative = np.empty(num_negative_groundtruth, dtype=np.int64)
+        predictions_negative = np.empty(num_images_groundtruth, dtype=np.int64)
+        names_negative = []
+        clusters_negative = np.empty((num_images_groundtruth, clusters_positive.shape[1]), dtype=np.int64)
+        for i in range(num_negative_groundtruth):
+            neg_index = np.random.randint(len(self.image_list))
+            while True:
+                c_neg = np.argmax(self.image_list[neg_index].labels)
+                if self.image_list[neg_index].labels[c_neg] == 1 and c_neg != c:
+                    break
+                neg_index = np.random.randint(len(self.image_list))
+            if self.image_list[neg_index].clusters is None:
+                break
+            indices_negative[i] = neg_index
+            predictions_negative[i] = c
+            names_negative.append(self.image_list[neg_index].name)
+            clusters_negative[i, :] = self.image_list[neg_index].clusters
+
+        positives = np.array([0] * len(indices) + [1] * len(indices_positive) + [-1] * len(indices_negative), dtype=np.int64)
+        indices = np.concatenate((indices, indices_positive, indices_negative))
+        predictions = np.concatenate((predictions, predictions_positive, predictions_negative))
+        names = names + names_positive + names_negative
+        clusters = np.concatenate((clusters, clusters_positive, clusters_negative))
+
+        return indices, names, predictions, clusters, positives
 
 
     def get_labeling_batch_groundtruth(self, num_images):

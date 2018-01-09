@@ -1,0 +1,33 @@
+
+input[type="checkbox"] { } 
+/* label { background-color:#333; color:#FFF; }*/
+label { padding: 16px; margin:2px}
+label image { display:block }
+input[type="checkbox"]:checked + label {
+    background: white;
+}
+td { padding: 2px;}
+
+img { 
+    height: 128px;
+    border-color:white;
+    border-width:10px;
+    border:solid;
+    padding: 16px;
+    image-rendering: auto;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+}
+
+.heading {
+	font-size: 48px;
+}
+
+p {
+	font-size: 24px;
+}
+
+.nextbtn {
+	padding:32px;
+	font-size:30px;
+}

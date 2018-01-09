@@ -18,7 +18,7 @@
                 "RedirectOutput"
             ],
             "args": [
-                "--web", "--checkpoint_dir=checkpoints"
+                "--web", "--checkpoint_dir=checkpoints_4000_unsupervised"
             ]
         },
         {

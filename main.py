@@ -32,13 +32,16 @@ class_list = [x.decode('ascii') for x in genfromtxt('classes.csv', delimiter=','
 ITERATIONS = 2000
 
 def main():
-    reader = DataReader(images_directory, width, width, channels, class_list, corruption=args.CORRUPTION)
+    reader = DataReader(images_directory, width, width, channels, class_list, corruption=args.CORRUPTION, load_filename='image_list.pkl')
+
+    # reader.save_image_list('image_list.pkl')
 
     if args.WEB:
         Thread(target=lambda: start_server(reader)).start()
     os.makedirs(args.CHECKPOINT_DIR, exist_ok=True)
 
     model = SSLModel(width, width, channels, mb_size, len(class_list), args.CHECKPOINT_DIR, load=args.LOAD, use_generator=not args.SUPERVISED)
+    reader.autolabel(model, 1.1)
 
     for e in range(ITERATIONS):
         

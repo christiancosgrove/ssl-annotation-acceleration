@@ -7,6 +7,7 @@ import threading
 from data import DataReader
 import base64
 from model import SSLModel
+import json
 
 app = Flask(__name__)
 
@@ -26,26 +27,18 @@ def index():
 
     css = ''
     js = ''
-    with open('style.css') as cssfile:
+    with open('style_cluster.css') as cssfile:
         css = cssfile.read()
-    with open('interface.js') as jsfile:
+    with open('interface_cluster.js') as jsfile:
         js = jsfile.read().replace('NUM_IMAGES', str(num_images+num_images_groundtruth))
 
     html = '<head><style>{}</style><script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script><script>{}</script></head><body>'.format(css, js)
 
 
     html += '<form id="form1" action="' + post_endpoint + '" method="post">'
-    indices, names, predictions, clusters = reader.get_labeling_batch_clustered(num_images)
-    gt_indices, gt_names, gt_predictions, gt_positives = reader.get_labeling_batch_groundtruth(num_images_groundtruth)
-    if indices is None or gt_indices is None:
+    total_indices, total_names, total_predictions, total_clusters, total_positives = reader.get_labeling_batch_clustered(num_images, num_images_groundtruth)
+    if total_indices is None or total_names is None or total_predictions is None or total_clusters is None or total_positives is None:
         return "No work right now..."
-
-    total_indices = np.append(indices, gt_indices)
-    total_names = names + gt_names
-    total_predictions = np.append(predictions, gt_predictions)
-
-    total_positives = np.append([0] * len(indices), gt_positives)
-
     perm = np.random.permutation(len(total_indices))
 
 
@@ -53,15 +46,16 @@ def index():
     total_names = [total_names[i] for i in perm]
     total_predictions = total_predictions[perm]
     total_positives = total_positives[perm]
+    total_clusters = total_clusters[perm]
 
     html += '<input type="hidden" name="c" value="{}"></input>'.format(base64.urlsafe_b64encode(total_predictions).decode('ascii'))
     html += '<input type="hidden" name="s" value="{}"></input>'.format(base64.urlsafe_b64encode(total_indices).decode('ascii'))
     html += '<input type="hidden" name="p" value="{}"></input>'.format(base64.urlsafe_b64encode(total_positives).decode('ascii'))
+    html += '<input type="hidden" name="l" value="{}"></input>'.format(json.dumps(total_clusters.tolist()))
 
     for i, ind in enumerate(total_indices):
-        style = "display:none" if i != 0 else ""
         iname = "i" + str(i)
-        html += '<div style="' + style + '"><span class="heading">Is this a <strong>' + \
+        html += '<div><span class="heading">Is this a <strong>' + \
             reader.class_list[total_predictions[i]] + '</strong>?</span><br><input type="checkbox" id="{}" name="{}"><label for="{}"><img src="{}" /></label></div>'.format(iname, iname, iname, total_names[i])
     html += '<a class="nextbtn" href="#" onclick="nextItem(false)">No (shortcut <strong>N</strong>)</a>'
     html += '<a class="nextbtn" href="#" onclick="nextItem(true)">Yes (shortcut <strong>M</strong>)</a>'
