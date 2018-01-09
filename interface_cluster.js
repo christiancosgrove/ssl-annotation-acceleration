@@ -1,5 +1,6 @@
 document.onload = function() {
     clusters = JSON.parse($('[name="l"]').val())
+    maxDepth = clusters[0].length
 }
 dnow = new Date()
 
@@ -48,9 +49,9 @@ function nextPage() {
 document.onkeypress = function(e) {
     e = e || window.event;
     if (e.keyCode == 110) { //yes
-        nextItem(false);
+        nextCluster(false);
     } else if (e.keyCode == 109) { // no
-        nextItem(true);
+        nextCluster(true);
     }
 }
 
@@ -71,6 +72,32 @@ function nextItem(checked) {
 
 currDepth = 0;
 currCluster = 0;
+function getClustersNotChecked() {
+    
+    not_checked = [];
+    clusters.forEach(function(c, i) { 
+        if (currDepth < maxDepth && !$('#i' + i).is(':checked') && c[currDepth] == currCluster) { not_checked.push(i); }
+    });
+    return not_checked;
+}
 function nextCluster(checked) {
 
+    not_checked = getClustersNotChecked();
+    if (checked) {
+        not_checked.forEach(function(i) {
+            $('#i' + i).prop('checked', checked);
+        })
+    }
+    while (currDepth < maxDepth && not_checked.length == 0)
+    {
+        not_checked = getClustersNotChecked();
+        currCluster += 1;
+        if (currCluster >= Math.pow(2, currDepth)) {
+            currCluster = 0;
+            currDepth += 1;
+        }
+    }
+    if (currDepth >= maxDepth) {
+        nextPage();
+    }
 }

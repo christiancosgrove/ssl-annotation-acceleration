@@ -1,8 +1,14 @@
 
 input[type="checkbox"] { } 
 /* label { background-color:#333; color:#FFF; }*/
-label { padding: 16px; margin:2px}
-label image { display:block }
+label { 
+    padding: 16px; 
+    margin:2px;
+    display: inline-block;
+}
+label image { 
+    display:inline-block;
+}
 input[type="checkbox"]:checked + label {
     background: white;
 }

@@ -284,7 +284,9 @@ class DataReader:
         predictions = np.array([c] * len(candidates), dtype=np.int64)
         names = [im.name for (i, im) in candidates]
         clusters = np.array([im.clusters for (i, im) in candidates], dtype=np.int64)
-
+        if clusters.shape[0] == 0:
+            return None, None, None, None, None
+            
         # get ground-truth images - used to evaluate performance of annotators
         # 50% are positive, 50% are negative
 

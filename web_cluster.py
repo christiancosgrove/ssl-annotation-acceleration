@@ -53,10 +53,13 @@ def index():
     html += '<input type="hidden" name="p" value="{}"></input>'.format(base64.urlsafe_b64encode(total_positives).decode('ascii'))
     html += '<input type="hidden" name="l" value="{}"></input>'.format(json.dumps(total_clusters.tolist()))
 
+    html += '<div><span class="heading">Is this a <strong>' + reader.class_list[total_predictions[i]] + '</strong>?<br>'
+    line_width = int(np.sqrt(len(total_indices)))
     for i, ind in enumerate(total_indices):
         iname = "i" + str(i)
-        html += '<div><span class="heading">Is this a <strong>' + \
-            reader.class_list[total_predictions[i]] + '</strong>?</span><br><input type="checkbox" id="{}" name="{}"><label for="{}"><img src="{}" /></label></div>'.format(iname, iname, iname, total_names[i])
+        html += '<input type="checkbox" id="{}" name="{}"><label for="{}"><img src="{}" /></label></div>'.format(iname, iname, iname, total_names[i])
+        if i % line_width == (line_width - 1):
+            html += '<br>'
     html += '<a class="nextbtn" href="#" onclick="nextItem(false)">No (shortcut <strong>N</strong>)</a>'
     html += '<a class="nextbtn" href="#" onclick="nextItem(true)">Yes (shortcut <strong>M</strong>)</a>'
     # html += '<p>Say <strong>no</strong> for any <strong>vehicle interiors</strong>, or any case where <strong>the type of vehicle is unclear</strong>.</p>'
