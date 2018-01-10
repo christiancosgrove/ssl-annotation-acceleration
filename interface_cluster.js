@@ -1,6 +1,12 @@
-document.onload = function() {
-    clusters = JSON.parse($('[name="l"]').val())
-    maxDepth = clusters[0].length
+window.clusters = undefined;
+window.image_checked = undefined;
+window.maxDepth = undefined;
+window.done = undefined;
+window.onload = function() {
+    window.clusters = JSON.parse($('[name="l"]').val());
+    window.maxDepth = window.clusters[0].length - 2;
+    window.image_checked = window.clusters.map(function() { return false; })
+    window.done = window.clusters.map(function() { return false; })
 }
 dnow = new Date()
 
@@ -72,32 +78,63 @@ function nextItem(checked) {
 
 currDepth = 0;
 currCluster = 0;
-function getClustersNotChecked() {
+currKMeansCluster = 0;
+
+KMeansClusters = 50;
+
+function clusterNotChecked(i) { 
+    return currDepth < window.maxDepth && !window.image_checked[i] && !window.done[i] && window.clusters[i][currDepth + 2] == currCluster && window.clusters[i][1] == currKMeansCluster;
+}
+
+function getImagesNotCheckedInCurrentCluster() {
     
     not_checked = [];
-    clusters.forEach(function(c, i) { 
-        if (currDepth < maxDepth && !$('#i' + i).is(':checked') && c[currDepth] == currCluster) { not_checked.push(i); }
+    window.clusters.forEach(function(c, i) { 
+        if (clusterNotChecked(i)) { not_checked.push(i); }
     });
     return not_checked;
 }
 function nextCluster(checked) {
 
-    not_checked = getClustersNotChecked();
+    console.log("curr Depth");
+    console.log(currDepth);
+    console.log("curr cluster");
+    console.log(currCluster);
+    not_checked = getImagesNotCheckedInCurrentCluster();
     if (checked) {
         not_checked.forEach(function(i) {
-            $('#i' + i).prop('checked', checked);
+            window.image_checked[i] = true;
         })
     }
-    while (currDepth < maxDepth && not_checked.length == 0)
-    {
-        not_checked = getClustersNotChecked();
-        currCluster += 1;
-        if (currCluster >= Math.pow(2, currDepth)) {
-            currCluster = 0;
-            currDepth += 1;
+    if (!checked) { //if there was only a single image in that cluster, then we can rule out that image from future clusters
+        if (not_checked.length == 1) {
+            window.done[not_checked[0]] = true;
         }
     }
-    if (currDepth >= maxDepth) {
-        nextPage();
+
+    //maintains a mutable copy of the checked states and propagates after each user interaction
+    window.image_checked.forEach(function(t, i) { $('#i' + i).prop('checked', t); })
+    
+    while (true)
+    {
+        currCluster++;
+        if (currCluster >= Math.pow(2, currDepth)) {
+            currCluster = 0;
+            currDepth++;
+        }
+        not_checked = getImagesNotCheckedInCurrentCluster();
+        if (currDepth >= window.maxDepth) {
+            currDepth = 0;
+            currKMeansCluster++;
+            if (currKMeansCluster >= KMeansClusters) {
+                nextPage();
+                return;
+            }
+        }
+        if (currDepth >= window.maxDepth || not_checked.length != 0) { break; }
+    }
+
+    for (var i = 0; i < window.clusters.length; i++) {
+        $('#m' + i).css('visibility', (clusterNotChecked(i)) ? 'visible' : 'hidden')
     }
 }

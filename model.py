@@ -150,7 +150,12 @@ class SSLModel:
         return self.sess.run(self.class_probabilities, feed_dict={self.X: X, self.training_now:False})
 
     def features_predict(self, X): #get features and class probabilities for a minibatch of images
-        return self.sess.run([self.D_real_feat, self.class_probabilities], feed_dict={self.X: X, self.training_now:False})
+        #if less than a minibatch is provided, feed in zero images
+        shape = (self.mb_size, X.shape[1], X.shape[2], X.shape[3])
+        X_mb = np.zeros(shape)
+        X_mb[:X.shape[0]] = X
+        features, confidences = self.sess.run([self.D_real_feat, self.class_probabilities], feed_dict={self.X: X_mb, self.training_now:False})
+        return features[:X.shape[0]], confidences[:X.shape[0]]
 
     def sample_fake(self):
         return self.sess.run(self.X_fake, feed_dict={self.z: self.sample_z(), self.training_now:False})

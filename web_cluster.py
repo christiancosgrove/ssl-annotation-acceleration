@@ -15,7 +15,7 @@ reader = None
 # model = None
 
 num_images = 32
-num_images_groundtruth = 16
+num_images_groundtruth = 8
 groundtruth_threshold = 0.75 #acceptance threshold for performance on ground-truth images
 
 
@@ -39,7 +39,7 @@ def index():
     total_indices, total_names, total_predictions, total_clusters, total_positives = reader.get_labeling_batch_clustered(num_images, num_images_groundtruth)
     if total_indices is None or total_names is None or total_predictions is None or total_clusters is None or total_positives is None:
         return "No work right now..."
-    perm = np.random.permutation(len(total_indices))
+    perm = np.array(sorted(list(range(len(total_indices))), key=lambda i: total_clusters[i][-1]))
 
 
     total_indices = total_indices[perm]
@@ -53,11 +53,11 @@ def index():
     html += '<input type="hidden" name="p" value="{}"></input>'.format(base64.urlsafe_b64encode(total_positives).decode('ascii'))
     html += '<input type="hidden" name="l" value="{}"></input>'.format(json.dumps(total_clusters.tolist()))
 
-    html += '<div><span class="heading">Is this a <strong>' + reader.class_list[total_predictions[i]] + '</strong>?<br>'
-    line_width = int(np.sqrt(len(total_indices)))
+    html += '<div><span class="heading">Is this a <strong>' + reader.class_list[total_predictions[0]] + '</strong>?<br>'
+    line_width = int(np.ceil(np.sqrt(len(total_indices))))
     for i, ind in enumerate(total_indices):
         iname = "i" + str(i)
-        html += '<input type="checkbox" id="{}" name="{}"><label for="{}"><img src="{}" /></label></div>'.format(iname, iname, iname, total_names[i])
+        html += '<input type="checkbox" id="{}" name="{}"><label for="{}"><img id="{}" src="{}" /></label></div>'.format(iname, iname, iname, "m" + str(i), total_names[i])
         if i % line_width == (line_width - 1):
             html += '<br>'
     html += '<a class="nextbtn" href="#" onclick="nextItem(false)">No (shortcut <strong>N</strong>)</a>'

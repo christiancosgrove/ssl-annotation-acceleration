@@ -88,7 +88,7 @@ class DataReader:
             np.random.seed(0)
             indices = np.random.permutation(len(self.image_list))
             i = 0
-            while i < 4000:
+            while i < 50:#4000
                 if not self.image_list[indices[i]].test:
                     if np.random.uniform() < corruption:
                         self.image_list[indices[i]].labels[np.random.randint(len(class_list))] = 1
@@ -286,43 +286,44 @@ class DataReader:
         clusters = np.array([im.clusters for (i, im) in candidates], dtype=np.int64)
         if clusters.shape[0] == 0:
             return None, None, None, None, None
-            
-        # get ground-truth images - used to evaluate performance of annotators
-        # 50% are positive, 50% are negative
 
-        num_positive_groundtruth = num_images_groundtruth // 2
-        num_negative_groundtruth = num_images_groundtruth - num_positive_groundtruth
+        if num_images_groundtruth > 0:
+            # get ground-truth images - used to evaluate performance of annotators
+            # 50% are positive, 50% are negative
 
-        candidates_positive = [(i, im) for (i, im) in enumerate(self.image_list) if im.clusters is not None and im.labels[c] == 1]
-        candidates_positive = [candidates_positive[i] for i in np.random.permutation(min(num_positive_groundtruth, len(candidates_positive)))]
-        indices_positive = np.array([i for (i, im) in candidates_positive], dtype=np.int64)
-        predictions_positive = np.array([c] * len(candidates_positive), dtype=np.int64)
-        names_positive = [im.name for (i, im) in candidates_positive]
-        clusters_positive = np.array([im.clusters for (i, im) in candidates_positive], dtype=np.int64)
+            num_positive_groundtruth = num_images_groundtruth // 2
+            num_negative_groundtruth = num_images_groundtruth - num_positive_groundtruth
 
-        indices_negative = np.empty(num_negative_groundtruth, dtype=np.int64)
-        predictions_negative = np.empty(num_images_groundtruth, dtype=np.int64)
-        names_negative = []
-        clusters_negative = np.empty((num_images_groundtruth, clusters_positive.shape[1]), dtype=np.int64)
-        for i in range(num_negative_groundtruth):
-            neg_index = np.random.randint(len(self.image_list))
-            while True:
-                c_neg = np.argmax(self.image_list[neg_index].labels)
-                if self.image_list[neg_index].labels[c_neg] == 1 and c_neg != c:
-                    break
+            candidates_positive = [(i, im) for (i, im) in enumerate(self.image_list) if im.clusters is not None and im.labels[c] == 1]
+            candidates_positive = [candidates_positive[i] for i in np.random.permutation(min(num_positive_groundtruth, len(candidates_positive)))]
+            indices_positive = np.array([i for (i, im) in candidates_positive], dtype=np.int64)
+            predictions_positive = np.array([c] * len(candidates_positive), dtype=np.int64)
+            names_positive = [im.name for (i, im) in candidates_positive]
+            clusters_positive = np.array([im.clusters for (i, im) in candidates_positive], dtype=np.int64)
+
+            indices_negative = np.empty(num_negative_groundtruth, dtype=np.int64)
+            predictions_negative = np.empty(num_negative_groundtruth, dtype=np.int64)
+            names_negative = []
+            clusters_negative = np.empty((num_negative_groundtruth, clusters_positive.shape[1]), dtype=np.int64)
+            for i in range(num_negative_groundtruth):
                 neg_index = np.random.randint(len(self.image_list))
-            if self.image_list[neg_index].clusters is None:
-                break
-            indices_negative[i] = neg_index
-            predictions_negative[i] = c
-            names_negative.append(self.image_list[neg_index].name)
-            clusters_negative[i, :] = self.image_list[neg_index].clusters
+                while True:
+                    c_neg = np.argmax(self.image_list[neg_index].labels)
+                    if self.image_list[neg_index].labels[c_neg] == 1 and c_neg != c:
+                        break
+                    neg_index = np.random.randint(len(self.image_list))
+                if self.image_list[neg_index].clusters is None:
+                    break
+                indices_negative[i] = neg_index
+                predictions_negative[i] = c
+                names_negative.append(self.image_list[neg_index].name)
+                clusters_negative[i, :] = self.image_list[neg_index].clusters
 
-        positives = np.array([0] * len(indices) + [1] * len(indices_positive) + [-1] * len(indices_negative), dtype=np.int64)
-        indices = np.concatenate((indices, indices_positive, indices_negative))
-        predictions = np.concatenate((predictions, predictions_positive, predictions_negative))
-        names = names + names_positive + names_negative
-        clusters = np.concatenate((clusters, clusters_positive, clusters_negative))
+            positives = np.array([0] * len(indices) + [1] * len(indices_positive) + [-1] * len(indices_negative), dtype=np.int64)
+            indices = np.concatenate((indices, indices_positive, indices_negative))
+            predictions = np.concatenate((predictions, predictions_positive, predictions_negative))
+            names = names + names_positive + names_negative
+            clusters = np.concatenate((clusters, clusters_positive, clusters_negative))
 
         return indices, names, predictions, clusters, positives
 
@@ -375,7 +376,7 @@ class DataReader:
         features = None
 
         print("autolabeling")
-        for i in range(len(self.image_list) // ssl_model.mb_size):
+        for i in range(len(self.image_list) // ssl_model.mb_size + 1):
 
             #get features and class confidences for every image in training set
             mb_features, mb_confidences = ssl_model.features_predict(self.images[i * ssl_model.mb_size : (i + 1) * ssl_model.mb_size])
