@@ -14,6 +14,9 @@ import re
 
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.cluster import AgglomerativeClustering
+from sklearn.cluster import Birch
+
+from hierarchical_birch import fit_predict_hierarchical_birch
 
 CLUSTER_DEPTH = 8
 
@@ -272,7 +275,7 @@ class DataReader:
         while True:
             if self.image_list[0].clusters is None or depth >= len(self.image_list[0].clusters):
                 break
-            selected_cluster = np.random.randint(2 ** depth)
+            selected_cluster = np.random.randint(1)
             next_candidates = [(i, im) for (i, im) in candidates if im.clusters[depth] == selected_cluster]
 
             if len(next_candidates) < num_images:
@@ -389,32 +392,47 @@ class DataReader:
         print("got confidences")
 
         if features is not None:
-            n_clusters=50 #number of k-means clusters per class
-            labels = MiniBatchKMeans(n_clusters=n_clusters, max_iter=10).fit_predict(features.astype(np.float64))
-            labels = np.c_[np.arange(len(labels)),np.array(labels)]
-            print('clustering class ')
+            brc = Birch(branching_factor=2, n_clusters=None, compute_labels=True)
+            print(brc.fit_predict(features.astype(np.float64)))
+            shortest_clusters_length = -1
             for c in range(len(self.class_list)):
-                print('{} '.format(c), end='', flush=True)
-                for l_index in range(n_clusters):
+                group = [x for x in enumerate(features) if np.argmax(confidences[x[0]]) == c]
+                clusters = fit_predict_hierarchical_birch(np.array([f[1] for f in group]))
+                for i, x in enumerate(group):
+                    self.image_list[x[0]].clusters = np.concatenate([[c], clusters[i]])
+                if shortest_clusters_length == -1 or clusters.shape[1] < shortest_clusters_length:
+                    shortest_clusters_length = clusters.shape[1]
+            # truncate clusters to shortest clusters length across all classes 
+            for im in self.image_list:
+                im.clusters.resize(shortest_clusters_length)
+        print(self.image_list[0].clusters)
+        # if features is not None:
+        #     n_clusters=50 #number of k-means clusters per class
+        #     labels = MiniBatchKMeans(n_clusters=n_clusters, max_iter=10).fit_predict(features.astype(np.float64))
+        #     labels = np.c_[np.arange(len(labels)),np.array(labels)]
+        #     print('clustering class ')
+        #     for c in range(len(self.class_list)):
+        #         print('{} '.format(c), end='', flush=True)
+        #         for l_index in range(n_clusters):
 
-                    group = np.array([x for x in labels if x[1] == l_index and np.argmax(confidences[x[0]])==c])
-                    if group.shape[0] <= 1:
-                        continue
-                    # perform hierarchical agglomerative clustering on each k-means cluster
-                    # this agglomerative clustering implementation is memory hungry, thus we must split up the training set
+        #             group = np.array([x for x in labels if x[1] == l_index and np.argmax(confidences[x[0]])==c])
+        #             if group.shape[0] <= 1:
+        #                 continue
+        #             # perform hierarchical agglomerative clustering on each k-means cluster
+        #             # this agglomerative clustering implementation is memory hungry, thus we must split up the training set
 
-                    agg_labels = []
+        #             agg_labels = []
 
-                    n_agg_clusters = min(2**(CLUSTER_DEPTH), group.shape[0]) #make sure we don't use too many clusters - clamp to number of samples
-                    agg = AgglomerativeClustering(n_clusters=n_agg_clusters)
-                    for i in range(CLUSTER_DEPTH):
-                        n_agg_clusters = min(2**(i+1), group.shape[0])
-                        agg.set_params(n_clusters=n_agg_clusters)
-                        agg_labels.append(agg.fit_predict(features[group[:,0]]))
-                    agg_labels = np.array(agg_labels)
-                    for i, x in enumerate(group):
-                        self.image_list[x[0]].clusters = np.concatenate([[c, x[1]], agg_labels[:,i]])
-            print('')
+        #             n_agg_clusters = min(2**(CLUSTER_DEPTH), group.shape[0]) #make sure we don't use too many clusters - clamp to number of samples
+        #             agg = AgglomerativeClustering(n_clusters=n_agg_clusters)
+        #             for i in range(CLUSTER_DEPTH):
+        #                 n_agg_clusters = min(2**(i+1), group.shape[0])
+        #                 agg.set_params(n_clusters=n_agg_clusters)
+        #                 agg_labels.append(agg.fit_predict(features[group[:,0]]))
+        #             agg_labels = np.array(agg_labels)
+        #             for i, x in enumerate(group):
+        #                 self.image_list[x[0]].clusters = np.concatenate([[c, x[1]], agg_labels[:,i]])
+            # print('')
         count = 0
 
         correct_count = 0

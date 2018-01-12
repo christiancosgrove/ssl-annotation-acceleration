@@ -39,7 +39,14 @@ def index():
     total_indices, total_names, total_predictions, total_clusters, total_positives = reader.get_labeling_batch_clustered(num_images, num_images_groundtruth)
     if total_indices is None or total_names is None or total_predictions is None or total_clusters is None or total_positives is None:
         return "No work right now..."
-    perm = np.array(sorted(list(range(len(total_indices))), key=lambda i: total_clusters[i][-1]))
+    cluster_keys = np.zeros(total_clusters.shape[0], dtype=np.int64)
+    for (i, j), cluster in np.ndenumerate(total_clusters):
+        cluster_keys[i] += np.power(2, (total_clusters.shape[1] - 1 - j)) * np.int64(cluster)
+
+    print("cluster keys")
+    print(cluster_keys)
+    print(total_clusters)
+    perm = np.array(sorted(list(range(len(total_indices))), key=lambda i: cluster_keys[i]))
 
 
     total_indices = total_indices[perm]
